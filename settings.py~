@@ -1,0 +1,14 @@
+Uop
+PC
+Src1
+Src2
+Dest
+Flags
+Branch
+Ld/St
+Immediate
+Mem. Address
+Fallthrough PC
+Target PC
+Macro Opcode
+Micro Opcode
