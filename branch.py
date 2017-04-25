@@ -6,6 +6,7 @@ implementation) used for benchmarking. Visualization is handled
 separately from the processing here
 """
 
+from predictors.static import StaticPredictor
 import settings as s
 
 def preprocess(filename):
@@ -25,8 +26,22 @@ def preprocess(filename):
                cleaned.append(instruction_dump)
     return cleaned
 
+def evaluate(predictor, data):
+    """
+    Given a predictor, as defined in the predictor directory (either the
+    static predictor, dynamic, or neural) calculates the accuracy through
+    the dump provided and outputs accuracy (as percent)
+    """
+    predictor.train(data)
+    correct = 0
+    for inst in data:
+        correct += int(inst[s.BRANCH] == predictor.predict(inst))
+    return correct/len(data)
+        
 def main(filename):
     memdump = preprocess(filename)
+    predictor = StaticPredictor()
+    print(evaluate(predictor, memdump))
     
 if __name__ == "__main__":
     main(filename="data/gcc-1K.trace")
