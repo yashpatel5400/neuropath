@@ -17,12 +17,7 @@ class BimodalPredictor(Predictor):
         self.n = n
         self.counters = dict(zip(list(range(num_counters)),
                             num_counters * [Taken.StronglyNotTaken]))
-
-    def train(self, data):
-        # the saturating counters are integrated with the prediction
-        # step, i.e. there is no separate training before evaluation
-        pass
-
+        
     def predict(self, inst):
         # prediction updates the counters such that they reflect newly
         # seen data (i.e. correspondence between counter/prediction)

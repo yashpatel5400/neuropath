@@ -11,9 +11,5 @@ class Predictor(ABC):
         pass
     
     @abstractmethod
-    def train(self, data):
-        pass
-
-    @abstractmethod
     def predict(self, inst):
         pass

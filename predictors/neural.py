@@ -15,24 +15,23 @@ import settings as s
 from predictors.predictor import Predictor
 
 class NeuralPredictor(Predictor):
-    def __init__(self):
+    def __init__(self, data):
         self.model = Sequential()
         self.model.add(Dense(32, activation='relu', input_dim=1))
         self.model.add(Dense(1, activation='sigmoid'))
         self.model.compile(optimizer='rmsprop',
                       loss='binary_crossentropy',
                       metrics=['accuracy'])
-        
-    def train(self, data):
+
         inp = np.array([np.array([
-                int(d[s.PC], 16)
-                #int(d[s.FALLTHROUGH], 16),
-                #int(d[s.TARGET], 16)
+            int(d[s.PC], 16)
+            #int(d[s.FALLTHROUGH], 16),
+            #int(d[s.TARGET], 16)
             ]) for d in data])
         out = np.array([np.array([
             int(d[s.BRANCH] == 'T')
         ]) for d in data])
-        self.model.fit(inp, out, epochs=10, batch_size=10)
+        self.model.fit(inp, out, epochs=10, batch_size=10)    
         
     def predict(self, inst):
         boxed_inst = np.array([

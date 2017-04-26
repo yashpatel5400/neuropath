@@ -3,13 +3,23 @@ A neural branch predictor tested using CPU emulator, testing both supervised lea
 
 # Progress Steps
 <s> 0) preprocess data dumps to be readable/understand </s>
+
 <s> 1) abstract predictor class </s> 
+
 <s> 2) static predictor </s>
+
 <s> 3) simple dynamic </s>
+
 <s> 4) gshare (or some more complex dynamic) </s>
+
 <s> 5) some result visualizaton </s>
+
 <s> 6) format to trainable data (i.e. for ML/DL) </s>
-7) create NN architecture and train
+
+<s> 7) create NN architecture and train </s>
+
 8) create visualization of flow through program
+
 9) reinforcement predictor
+
 10) implement for live system (gem5 emulator)

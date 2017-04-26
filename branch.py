@@ -31,7 +31,7 @@ def preprocess(filename):
             if instruction_dump[s.FLAGS] == 'R' and \
                instruction_dump[s.BRANCH] != '-':
                cleaned.append(instruction_dump)
-    return cleaned
+    return np.array(cleaned)
 
 def evaluate(predictor, data):
     """
@@ -39,7 +39,6 @@ def evaluate(predictor, data):
     static predictor, dynamic, or neural) calculates the accuracy through
     the dump provided and outputs accuracy (as percent)
     """
-    predictor.train(data)
     correct = 0
     for inst in data:
         correct += int(inst[s.BRANCH] == predictor.predict(inst))
@@ -49,18 +48,18 @@ def main(filename):
     memdump = preprocess(filename)
     # part of the dump corresponding to static training "history"
     # data that is not seen live by user
-    traindump, testdump = np.split(memdump, 2)
+    traindump, testdump = np.array_split(memdump, 2)
 
     tests = {
         "static"  : StaticPredictor(),
         "bimodal" : BimodalPredictor(n=10),
         "gshare"  : GSharePredictor(n=10),
-        "neural"  : NeuralPredictor()
+        "neural"  : NeuralPredictor(traindump)
     }
 
     for predictor in tests:
         print("{} predictor had {} accuracy".format(
-            predictor, evaluate(tests[predictor], memdump)))
+            predictor, evaluate(tests[predictor], testdump)))
     visualize_test(memdump)
         
 if __name__ == "__main__":
