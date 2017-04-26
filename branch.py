@@ -9,6 +9,8 @@ separately from the processing here
 from predictors.static import StaticPredictor
 from predictors.bimodal import BimodalPredictor
 
+from visualization.bimodal import visualize_test
+
 import settings as s
 
 def preprocess(filename):
@@ -39,12 +41,12 @@ def evaluate(predictor, data):
     for inst in data:
         correct += int(inst[s.BRANCH] == predictor.predict(inst))
     return correct/len(data)
-        
+
 def main(filename):
     memdump = preprocess(filename)
     tests = {
         "static"  : StaticPredictor(),
-        "bimodal" : BimodalPredictor(n=10),
+        "bimodal" : BimodalPredictor(n=10)
     }
 
     for predictor in tests:

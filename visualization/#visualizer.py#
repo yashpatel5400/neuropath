@@ -1,0 +1,13 @@
+"""
+__name__ = bimodalviz.py
+__author__ = Yash Patel
+__description__ = Visualization of experiments on the bimodal
+dynamic branch predictor (for maximizing/understanding its parameters)
+"""
+
+from predictors.bimodal import BimodalPredictor
+from plotly.graph_objs import Scatter, Figure, Layout
+
+def visualize_bimodal():
+    ns = list(range(MAX_N))
+    plot([Scatter(x=[1, 2, 3], y=[3, 1, 6])])
