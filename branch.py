@@ -36,6 +36,7 @@ def evaluate(predictor, data):
     static predictor, dynamic, or neural) calculates the accuracy through
     the dump provided and outputs accuracy (as percent)
     """
+    print(predictor)
     predictor.train(data)
     correct = 0
     for inst in data:
@@ -52,6 +53,8 @@ def main(filename):
     for predictor in tests:
         print("{} predictor had {} accuracy".format(
             predictor, evaluate(tests[predictor], memdump)))
-    
+
+    visualize_test(memdump)
+        
 if __name__ == "__main__":
     main(filename="data/gcc-1K.trace")
