@@ -7,6 +7,8 @@ separately from the processing here
 """
 
 from predictors.static import StaticPredictor
+from predictors.bimodal import BimodalPredictor
+
 import settings as s
 
 def preprocess(filename):
@@ -40,8 +42,14 @@ def evaluate(predictor, data):
         
 def main(filename):
     memdump = preprocess(filename)
-    predictor = StaticPredictor()
-    print(evaluate(predictor, memdump))
+    tests = {
+        "static"  : StaticPredictor(),
+        "bimodal" : BimodalPredictor(n=10),
+    }
+
+    for predictor in tests:
+        print("{} predictor had {} accuracy".format(
+            predictor, evaluate(tests[predictor], memdump)))
     
 if __name__ == "__main__":
     main(filename="data/gcc-1K.trace")
