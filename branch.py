@@ -6,13 +6,14 @@ implementation) used for benchmarking. Visualization is handled
 separately from the processing here
 """
 
+import numpy as np
+
 from predictors.static  import StaticPredictor
 from predictors.bimodal import BimodalPredictor
 from predictors.gshare  import GSharePredictor
 from predictors.neural  import NeuralPredictor
 
 from visualization.dynamic import visualize_test
-
 import settings as s
 
 def preprocess(filename):
@@ -46,6 +47,10 @@ def evaluate(predictor, data):
 
 def main(filename):
     memdump = preprocess(filename)
+    # part of the dump corresponding to static training "history"
+    # data that is not seen live by user
+    traindump, testdump = np.split(memdump, 2)
+
     tests = {
         "static"  : StaticPredictor(),
         "bimodal" : BimodalPredictor(n=10),
