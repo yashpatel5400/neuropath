@@ -6,9 +6,10 @@ implementation) used for benchmarking. Visualization is handled
 separately from the processing here
 """
 
-from predictors.static import StaticPredictor
+from predictors.static  import StaticPredictor
 from predictors.bimodal import BimodalPredictor
-from predictors.gshare import GSharePredictor
+from predictors.gshare  import GSharePredictor
+from predictors.neural  import NeuralPredictor
 
 from visualization.dynamic import visualize_test
 
@@ -48,7 +49,8 @@ def main(filename):
     tests = {
         "static"  : StaticPredictor(),
         "bimodal" : BimodalPredictor(n=10),
-        "gshare"  : GSharePredictor(n=10)
+        "gshare"  : GSharePredictor(n=10),
+        "neural"  : NeuralPredictor()
     }
 
     for predictor in tests:
