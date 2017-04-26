@@ -48,7 +48,9 @@ def main(filename):
     memdump = preprocess(filename)
     # part of the dump corresponding to static training "history"
     # data that is not seen live by user
-    traindump, testdump = np.array_split(memdump, 2)
+    split = np.array_split(memdump, 5)
+    traindump = split[0]
+    testdump  = np.concatenate(split[1:])
 
     tests = {
         "static"  : StaticPredictor(),
@@ -63,4 +65,4 @@ def main(filename):
     visualize_test(memdump)
         
 if __name__ == "__main__":
-    main(filename="data/gcc-1K.trace")
+    main(filename="data/gcc-10M.trace")
