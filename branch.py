@@ -8,8 +8,9 @@ separately from the processing here
 
 from predictors.static import StaticPredictor
 from predictors.bimodal import BimodalPredictor
+from predictors.gshare import GSharePredictor
 
-from visualization.bimodal import visualize_test
+from visualization.dynamic import visualize_test
 
 import settings as s
 
@@ -36,7 +37,6 @@ def evaluate(predictor, data):
     static predictor, dynamic, or neural) calculates the accuracy through
     the dump provided and outputs accuracy (as percent)
     """
-    print(predictor)
     predictor.train(data)
     correct = 0
     for inst in data:
@@ -47,13 +47,13 @@ def main(filename):
     memdump = preprocess(filename)
     tests = {
         "static"  : StaticPredictor(),
-        "bimodal" : BimodalPredictor(n=10)
+        "bimodal" : BimodalPredictor(n=10),
+        "gshare"  : GSharePredictor(n=10)
     }
 
     for predictor in tests:
         print("{} predictor had {} accuracy".format(
             predictor, evaluate(tests[predictor], memdump)))
-
     visualize_test(memdump)
         
 if __name__ == "__main__":

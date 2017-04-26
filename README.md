@@ -7,7 +7,7 @@ A neural branch predictor tested using CPU emulator, testing both supervised lea
 <s> 2) static predictor </s>
 <s> 3) simple dynamic </s>
 4) gshare (or some more complex dynamic)
-5) some result visualizaton
+<s> 5) some result visualizaton </s>
 6) format to trainable data (i.e. for ML/DL)
 7) create NN architecture and train
 8) create visualization of flow through program

@@ -1,20 +1,21 @@
 """
-__name__ = bimodal.py
+__name__ = gshare.py
 __author__ = Yash Patel
-__description__ = Bimodal branch predictor, the simplest dynamic
-branch predictor that involves satuarating state predictor branch
-predictor. Can vary size of memory held in states
+__description__ = Global share branch predictor, also used 
+for reference for dynamic predictors, to ensure their accuracy 
+gains are worth the additional time overhead
 """
 
 import settings as s
 from predictors.predictor import Predictor
 from predictors.taken import Taken
     
-class BimodalPredictor(Predictor):
+class GSharePredictor(Predictor):
     def __init__(self, n):
         # 2n two-bit saturating counters.
         num_counters  = 2 ** n
         self.n = n
+        self.history  = ["0"] * n
         self.counters = dict(zip(list(range(num_counters)),
                             num_counters * [Taken.StronglyNotTaken]))
 
@@ -29,7 +30,8 @@ class BimodalPredictor(Predictor):
         pc = inst[s.PC]
 
         # select counter from the table using using lower n bits of PC
-        predictor = int(bin(int(pc, 16))[-self.n:], 2)
+        original  = bin(int(pc, 16))[-self.n:]
+        predictor = int(int("".join(self.history), 2) ^ int(original, 2))
         predict_counter = self.counters[predictor]
 
         if predict_counter == Taken.StronglyTaken or \
@@ -39,6 +41,10 @@ class BimodalPredictor(Predictor):
         else:
             prediction = 'N'
 
+        # updates history
+        self.history.append(str(int(inst[s.BRANCH] == 'T')))
+        self.history = self.history[1:]
+        
         # updates the counter statuses based on outcome of prediction
         if inst[s.BRANCH] == prediction:
             self.counters[predictor] = Taken.incr(self.counters[predictor])
