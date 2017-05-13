@@ -26,8 +26,7 @@ class BranchPredictor(SimObject):
     indirectPathLength = Param.Unsigned(3,
         "Previous indirect targets to use for path history")
 
-
-
+    
 class LocalBP(BranchPredictor):
     type = 'LocalBP'
     cxx_class = 'LocalBP'
@@ -77,3 +76,8 @@ class LTAGE(BranchPredictor):
     maxHist = Param.Unsigned(640, "Maximum history size of LTAGE")
     minTagWidth = Param.Unsigned(7, "Minimum tag size in tag tables")
 
+
+class AlwaysBP(BranchPredictor):
+    type = 'AlwaysBP'
+    cxx_class = 'AlwaysBP'
+    cxx_header = "cpu/pred/always.hh"
