@@ -30,8 +30,7 @@ bpred_create(unsigned int bimod_size,	/* bimod table size */
   l2size = no. of bits for each weight entry = 8 bits
   shift_width = size of global BHR
   ****************************************************************/
-  pred->bimod =
-	bpred_dir_create(l1size, l2size, shift_width, 0);   
+  pred->bimod = bpred_dir_create(l1size, l2size, shift_width, 0);   
       
   /***************************************************************
     allocation of BTB and RAS for perceptron
@@ -79,8 +78,7 @@ bpred_create(unsigned int bimod_size,	/* bimod table size */
 
 /* create a branch direction predictor */
 struct bpred_dir_t *		/* branch direction predictor instance */
-bpred_dir_create (
-				  unsigned int l1size,	 	/* level-1 table size */
+bpred_dir_create (unsigned int l1size,	 	/* level-1 table size */
 				  unsigned int l2size,	 	/* level-2 table size (if relevant) */
 				  unsigned int shift_width)	/* history register width */
 {
