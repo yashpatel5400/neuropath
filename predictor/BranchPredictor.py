@@ -76,8 +76,10 @@ class LTAGE(BranchPredictor):
     maxHist = Param.Unsigned(640, "Maximum history size of LTAGE")
     minTagWidth = Param.Unsigned(7, "Minimum tag size in tag tables")
 
-
 class AlwaysBP(BranchPredictor):
     type = 'AlwaysBP'
     cxx_class = 'AlwaysBP'
     cxx_header = "cpu/pred/always.hh"
+
+    localPredictorSize = Param.Unsigned(2048, "Size of local predictor")
+    localCtrBits = Param.Unsigned(2, "Bits per counter")

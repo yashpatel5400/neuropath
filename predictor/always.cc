@@ -1,35 +1,45 @@
-/*****************************************************************
- * File: always.cc
- * Created on: 13-May-2017
- * Author: Yash Patel
- * Description: Branch predictor that always returns True for the 
- * branching locations, i.e. a static branch predictor. Largely to
- * learn the ecosystem of gem5
- ****************************************************************/
+/*
+ * Copyright (c) 2004-2006 The Regents of The University of Michigan
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met: redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer;
+ * redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution;
+ * neither the name of the copyright holders nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Authors: Kevin Lim
+ */
 
 #include "cpu/pred/always.hh"
 
-#nclude "base/bitfield.hh"
 #include "base/intmath.hh"
+#include "base/misc.hh"
+#include "base/trace.hh"
 
 AlwaysBP::AlwaysBP(const AlwaysBPParams *params)
-  : BPredUnit(params) { }
-
-/**
- * Predicts whether or not the instruction is a taken branch, and the
- * target of the branch if it is taken. Always true by branch predictor
- * @param inst The branch instruction.
- * @param PC The predicted PC is passed back through this parameter.
- * @param tid The thread id.
- * @return Returns if the branch is taken or not.
- */
-bool
-AlwaysBP::predict(const StaticInstPtr &inst, const InstSeqNum &seqNum,
-			 TheISA::PCState &pc, ThreadID tid) {
-  return true;
-}
+    : BPredUnit(params)
+{ }
 
 AlwaysBP*
-AlwaysBPParams::create() 
+AlwaysBPParams::create()
+{
     return new AlwaysBP(this);
 }
