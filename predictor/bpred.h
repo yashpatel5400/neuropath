@@ -1,101 +1,19 @@
-/* bpred.h - branch predictor interfaces */
+/*****************************************************************
+ * File: perceptron.hh
+ * Created on: 13-May-2017
+ * Author: Yash Patel
+ * Description: Perceptron branch predictor for the gem5 simulator
+ * environment.
+ ****************************************************************/
 
-/* SimpleScalar(TM) Tool Suite
- * Copyright (C) 1994-2003 by Todd M. Austin, Ph.D. and SimpleScalar, LLC.
- * All Rights Reserved. 
- * 
- * THIS IS A LEGAL DOCUMENT, BY USING SIMPLESCALAR,
- * YOU ARE AGREEING TO THESE TERMS AND CONDITIONS.
- * 
- * No portion of this work may be used by any commercial entity, or for any
- * commercial purpose, without the prior, written permission of SimpleScalar,
- * LLC (info@simplescalar.com). Nonprofit and noncommercial use is permitted
- * as described below.
- * 
- * 1. SimpleScalar is provided AS IS, with no warranty of any kind, express
- * or implied. The user of the program accepts full responsibility for the
- * application of the program and the use of any results.
- * 
- * 2. Nonprofit and noncommercial use is encouraged. SimpleScalar may be
- * downloaded, compiled, executed, copied, and modified solely for nonprofit,
- * educational, noncommercial research, and noncommercial scholarship
- * purposes provided that this notice in its entirety accompanies all copies.
- * Copies of the modified software can be delivered to persons who use it
- * solely for nonprofit, educational, noncommercial research, and
- * noncommercial scholarship purposes provided that this notice in its
- * entirety accompanies all copies.
- * 
- * 3. ALL COMMERCIAL USE, AND ALL USE BY FOR PROFIT ENTITIES, IS EXPRESSLY
- * PROHIBITED WITHOUT A LICENSE FROM SIMPLESCALAR, LLC (info@simplescalar.com).
- * 
- * 4. No nonprofit user may place any restrictions on the use of this software,
- * including as modified by the user, by any other authorized user.
- * 
- * 5. Noncommercial and nonprofit users may distribute copies of SimpleScalar
- * in compiled or executable form as set forth in Section 2, provided that
- * either: (A) it is accompanied by the corresponding machine-readable source
- * code, or (B) it is accompanied by a written offer, with no time limit, to
- * give anyone a machine-readable copy of the corresponding source code in
- * return for reimbursement of the cost of distribution. This written offer
- * must permit verbatim duplication by anyone, or (C) it is distributed by
- * someone who received only the executable form, and is accompanied by a
- * copy of the written offer of source code.
- * 
- * 6. SimpleScalar was developed by Todd M. Austin, Ph.D. The tool suite is
- * currently maintained by SimpleScalar LLC (info@simplescalar.com). US Mail:
- * 2395 Timbercrest Court, Ann Arbor, MI 48105.
- * 
- * Copyright (C) 1994-2003 by Todd M. Austin, Ph.D. and SimpleScalar, LLC.
- */
-
-
-#ifndef BPRED_H
-#define BPRED_H
-
-#define dassert(a) assert(a)
+#ifndef __CPU_PRED_NEUROBRANCH_PRED_HH__
+#define __CPU_PRED_NEUROBRANCH_PRED_HH__
 
 #include <stdio.h>
-
-#include "host.h"
-#include "misc.h"
-#include "machine.h"
-#include "stats.h"
-
-/*
- * This module implements a number of branch predictor mechanisms.  The
- * following predictors are supported:
- *
- *	BPred2Level:  two level adaptive branch predictor
- *
- *		It can simulate many prediction mechanisms that have up to
- *		two levels of tables. Parameters are:
- *		     N   # entries in first level (# of shift register(s))
- *		     W   width of shift register(s)
- *		     M   # entries in 2nd level (# of counters, or other FSM)
- *		One BTB entry per level-2 counter.
- *
- *		Configurations:   N, W, M
- *
- *		    counter based: 1, 0, M
- *
- *		    GAg          : 1, W, 2^W
- *		    GAp          : 1, W, M (M > 2^W)
- *		    PAg          : N, W, 2^W
- *		    PAp          : N, W, M (M == 2^(N+W))
- *
- *	BPred2bit:  a simple direct mapped bimodal predictor
- *
- *		This predictor has a table of two bit saturating counters.
- *		Where counter states 0 & 1 are predict not taken and
- *		counter states 2 & 3 are predict taken, the per-branch counters
- *		are incremented on taken branches and decremented on
- *		no taken branches.  One BTB entry per counter.
- *
- *	BPredTaken:  static predict branch taken
- *
- *	BPredNotTaken:  static predict branch not taken
- *
- */
+#include <stdlib.h>
+#include <math.h>
+#include <assert.h>
+#include <unistd.h>
 
 /* an entry in a BTB */
 struct bpred_btb_ent_t {
@@ -105,48 +23,24 @@ struct bpred_btb_ent_t {
   struct bpred_btb_ent_t *prev, *next; /* lru chaining pointers */
 };
 
-
-
 /***************************************************************
 Created the new structure for perceptron
 ****************************************************************/
 /* direction predictor def */
 struct bpred_dir_t {
-  enum bpred_class class;	/* type of predictor */
-  union {
-    struct {
-      unsigned int size;	/* number of entries in direct-mapped table */
-      unsigned char *table;	/* prediction state table */
-    } bimod;
-    struct {
-      int l1size;		/* level-1 size, number of history regs */
-      int l2size;		/* level-2 size, number of pred states */
-      int shift_width;		/* amount of history in level-1 shift regs */
-      int xor;			/* history xor address flag */
-      int *shiftregs;		/* level-1 history table */
-      unsigned char *l2table;	/* level-2 prediction state table */
-    } two;
-     struct {
-	  int weight_index;			/* number  of weight indexes (K) */
-	  int weight_bits;    			/* number of bits per weight  = 8 bits*/
-	  int bhr_length; 			/* history length for the global history shift register (N)*/
-	  int output;	                   	/* to store the output of each lookup and use it back in update */
-	  signed int weights_table[500][500];	/* every entry is an element of array of weights */	
-	  signed int masks_table[100];		/* array of global bhr to be used for dot product with weights in lookup*/
-	  int index;				/* the index value = (baddr>>2) % (size weight_index)*/
-	 } perceptron;	
-  } config;
+  int weight_index;			/* number  of weight indexes (K) */
+  int weight_bits;    			/* number of bits per weight  = 8 bits*/
+  int bhr_length; 			/* history length for the global history shift register (N)*/
+  int output;	                   	/* to store the output of each lookup and use it back in update */
+  signed int weights_table[500][500];	/* every entry is an element of array of weights */	
+  signed int masks_table[100];		/* array of global bhr to be used for dot product with weights in lookup*/
+  int index;				/* the index value = (baddr>>2) % (size weight_index)*/
+} perceptron;
 };
 
 /* branch predictor def */
 struct bpred_t {
-  enum bpred_class class;	/* type of predictor */
-  struct {
-    struct bpred_dir_t *bimod;	  /* first direction predictor */
-    struct bpred_dir_t *twolev;	  /* second direction predictor */
-    struct bpred_dir_t *meta;	  /* meta predictor */
-  } dirpred;
-
+  struct bpred_dir_t *bimod;	  /* first direction predictor */
   struct {
     int sets;			/* num BTB sets */
     int assoc;			/* BTB associativity */
@@ -192,25 +86,21 @@ struct bpred_update_t {
 
 /* create a branch predictor */
 struct bpred_t *			/* branch predictory instance */
-bpred_create(enum bpred_class class,	/* type of predictor to create */
-	     unsigned int bimod_size,	/* bimod table size */
-	     unsigned int l1size,	/* level-1 table size */
-	     unsigned int l2size,	/* level-2 table size */
-	     unsigned int meta_size,	/* meta predictor table size */
-	     unsigned int shift_width,	/* history register width */
-	     unsigned int xor,		/* history xor address flag */
-	     unsigned int btb_sets,	/* number of sets in BTB */ 
-	     unsigned int btb_assoc,	/* BTB associativity */
-	     unsigned int retstack_size);/* num entries in ret-addr stack */
+bpred_create(
+			 unsigned int bimod_size,	/* bimod table size */
+			 unsigned int l1size,	/* level-1 table size */
+			 unsigned int l2size,	/* level-2 table size */
+			 unsigned int shift_width,	/* history register width */
+			 unsigned int btb_sets,	/* number of sets in BTB */ 
+			 unsigned int btb_assoc,	/* BTB associativity */
+			 unsigned int retstack_size);/* num entries in ret-addr stack */
 
 /* create a branch direction predictor */
 struct bpred_dir_t *		/* branch direction predictor instance */
 bpred_dir_create (
-  enum bpred_class class,	/* type of predictor to create */
   unsigned int l1size,		/* level-1 table size */
   unsigned int l2size,		/* level-2 table size (if relevant) */
-  unsigned int shift_width,	/* history register width */
-  unsigned int xor);	   	/* history xor address flag */
+  unsigned int shift_width);/* history register width */
 
 /* print branch predictor configuration */
 void
@@ -254,9 +144,8 @@ bpred_lookup(struct bpred_t *pred,	/* branch predictor instance */
  * hopefully this uncorrupts the stack. */
 void
 bpred_recover(struct bpred_t *pred,	/* branch predictor instance */
-	      md_addr_t baddr,		/* branch address */
 	      int stack_recover_idx);	/* Non-speculative top-of-stack;
-					 * used on mispredict recovery */
+					                 * used on mispredict recovery */
 
 /* update the branch predictor, only useful for stateful predictors; updates
    entry for instruction type OP at address BADDR.  BTB only gets updated
@@ -276,13 +165,4 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
 	     enum md_opcode op,		/* opcode of instruction */
 	     struct bpred_update_t *dir_update_ptr); /* pred state pointer */
 
-
-#ifdef foo0
-/* OBSOLETE */
-/* dump branch predictor state (for debug) */
-void
-bpred_dump(struct bpred_t *pred,	/* branch predictor instance */
-	   FILE *stream);		/* output stream */
-#endif
-
-#endif /* BPRED_H */
+#endif 

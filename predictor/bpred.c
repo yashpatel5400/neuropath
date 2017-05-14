@@ -1,75 +1,19 @@
-/* bpred.c - branch predictor routines */
+/*****************************************************************
+ * File: perceptron.cc
+ * Created on: 13-May-2017
+ * Author: Yash Patel
+ * Description: Perceptron branch predictor for the gem5 simulator
+ * environment.
+ ****************************************************************/
 
-/* SimpleScalar(TM) Tool Suite
- * Copyright (C) 1994-2003 by Todd M. Austin, Ph.D. and SimpleScalar, LLC.
- * All Rights Reserved. 
- * 
- * THIS IS A LEGAL DOCUMENT, BY USING SIMPLESCALAR,
- * YOU ARE AGREEING TO THESE TERMS AND CONDITIONS.
- * 
- * No portion of this work may be used by any commercial entity, or for any
- * commercial purpose, without the prior, written permission of SimpleScalar,
- * LLC (info@simplescalar.com). Nonprofit and noncommercial use is permitted
- * as described below.
- * 
- * 1. SimpleScalar is provided AS IS, with no warranty of any kind, express
- * or implied. The user of the program accepts full responsibility for the
- * application of the program and the use of any results.
- * 
- * 2. Nonprofit and noncommercial use is encouraged. SimpleScalar may be
- * downloaded, compiled, executed, copied, and modified solely for nonprofit,
- * educational, noncommercial research, and noncommercial scholarship
- * purposes provided that this notice in its entirety accompanies all copies.
- * Copies of the modified software can be delivered to persons who use it
- * solely for nonprofit, educational, noncommercial research, and
- * noncommercial scholarship purposes provided that this notice in its
- * entirety accompanies all copies.
- * 
- * 3. ALL COMMERCIAL USE, AND ALL USE BY FOR PROFIT ENTITIES, IS EXPRESSLY
- * PROHIBITED WITHOUT A LICENSE FROM SIMPLESCALAR, LLC (info@simplescalar.com).
- * 
- * 4. No nonprofit user may place any restrictions on the use of this software,
- * including as modified by the user, by any other authorized user.
- * 
- * 5. Noncommercial and nonprofit users may distribute copies of SimpleScalar
- * in compiled or executable form as set forth in Section 2, provided that
- * either: (A) it is accompanied by the corresponding machine-readable source
- * code, or (B) it is accompanied by a written offer, with no time limit, to
- * give anyone a machine-readable copy of the corresponding source code in
- * return for reimbursement of the cost of distribution. This written offer
- * must permit verbatim duplication by anyone, or (C) it is distributed by
- * someone who received only the executable form, and is accompanied by a
- * copy of the written offer of source code.
- * 
- * 6. SimpleScalar was developed by Todd M. Austin, Ph.D. The tool suite is
- * currently maintained by SimpleScalar LLC (info@simplescalar.com). US Mail:
- * 2395 Timbercrest Court, Ann Arbor, MI 48105.
- * 
- * Copyright (C) 1994-2003 by Todd M. Austin, Ph.D. and SimpleScalar, LLC.
- */
-
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <assert.h>
-
-#include "host.h"
-#include "misc.h"
-#include "machine.h"
-#include "bpred.h"
-
-#include <unistd.h>  
+#include "bpred.h"  
 
 /* create a branch predictor */
 struct bpred_t *			/* branch predictory instance */
-bpred_create(enum bpred_class class,	/* type of predictor to create */
-			 unsigned int bimod_size,	/* bimod table size */
+bpred_create(unsigned int bimod_size,	/* bimod table size */
 			 unsigned int l1size,	/* 2lev l1 table size */
 			 unsigned int l2size,	/* 2lev l2 table size */
-			 unsigned int meta_size,	/* meta table size */
 			 unsigned int shift_width,	/* history register width */
-			 unsigned int xor,  	/* history xor address flag */
 			 unsigned int btb_sets,	/* number of sets in BTB */ 
 			 unsigned int btb_assoc,	/* BTB associativity */
 			 unsigned int retstack_size) /* num entries in ret-addr stack */
@@ -80,13 +24,14 @@ bpred_create(enum bpred_class class,	/* type of predictor to create */
     fatal("out of virtual memory");
     
   /***************************************************************
-created a new case named BPredPerceptron getting values from bpred_dir_create assigned in sim-outorder.c
-l1size = K
-l2size = no. of bits for each weight entry = 8 bits
-shift_width = size of global BHR
+  created a new case named BPredPerceptron getting values from 
+  bpred_dir_create assigned in sim-outorder.c
+  l1size = K
+  l2size = no. of bits for each weight entry = 8 bits
+  shift_width = size of global BHR
   ****************************************************************/
-  pred->dirpred.bimod =
-	bpred_dir_create(class, l1size, l2size, shift_width, 0);   
+  pred->bimod =
+	bpred_dir_create(l1size, l2size, shift_width, 0);   
       
   /***************************************************************
     allocation of BTB and RAS for perceptron
@@ -135,11 +80,9 @@ shift_width = size of global BHR
 /* create a branch direction predictor */
 struct bpred_dir_t *		/* branch direction predictor instance */
 bpred_dir_create (
-				  enum bpred_class class,	/* type of predictor to create */
 				  unsigned int l1size,	 	/* level-1 table size */
 				  unsigned int l2size,	 	/* level-2 table size (if relevant) */
-				  unsigned int shift_width,	/* history register width */
-				  unsigned int xor)	    	/* history xor address flag */
+				  unsigned int shift_width)	/* history register width */
 {
   struct bpred_dir_t *pred_dir;
   unsigned int cnt;
@@ -147,8 +90,6 @@ bpred_dir_create (
 
   if (!(pred_dir = calloc(1, sizeof(struct bpred_dir_t))))
     fatal("out of virtual memory");
-
-  pred_dir->class = class;
 
   cnt = -1;
   
@@ -165,65 +106,25 @@ bpred_dir_create (
 	fatal("shift register width, `%d', must be non-zero and positive",
 		  shift_width);
 	
-  pred_dir->config.perceptron.weight_index = l1size;
-  pred_dir->config.perceptron.weight_bits = l2size;
-  pred_dir->config.perceptron.bhr_length = shift_width;
-	
+  pred_dir->perceptron.weight_index = l1size;
+  pred_dir->perceptron.weight_bits = l2size;
+  pred_dir->perceptron.bhr_length = shift_width;
+   
+  /***************************************************************
+  Initializing weight table to all 0 and global BHR (mask_table) to all 1
+  ****************************************************************/
   int i,j;
 
-  /***************************************************************
-Initializing weight table to all 0 and global BHR (mask_table) to all 1
-  ****************************************************************/
-  for (i = 0; i < pred_dir->config.perceptron.index; i++)
-	{
-	  for (j=0; j < shift_width; j++)
-		pred_dir->config.perceptron.weights_table[i][j] = 0;	 	
-	}
-    
+  for (i = 0; i < pred_dir->perceptron.index; i++) {
+	for (j=0; j < shift_width; j++)
+	  pred_dir->perceptron.weights_table[i][j] = 0;	 	
+  }
         
-  for (cnt = 0; cnt < shift_width; cnt++){
-	pred_dir->config.perceptron.masks_table[cnt] = 1;
+  for (cnt = 0; cnt < shift_width; cnt++) {
+	pred_dir->perceptron.masks_table[cnt] = 1;
   }
 
   return pred_dir;
-}
-
-/* print branch direction predictor configuration */
-void
-bpred_dir_config(
-				 struct bpred_dir_t *pred_dir,	/* branch direction predictor instance */
-				 char name[],			/* predictor name */
-				 FILE *stream)			/* output stream */
-{
-  fprintf(stream, "pred_dir: %s:  %d perceptrons, %d weight_bits, %d history\n",
-		  name, pred_dir->config.perceptron.weight_index, pred_dir->config.perceptron.weight_bits,
-		  pred_dir->config.perceptron.bhr_length);
-}
-
-/* print branch predictor configuration */
-void
-bpred_config(struct bpred_t *pred,	/* branch predictor instance */
-			 FILE *stream)		/* output stream */
-{
-
-  /***************************************************************
-  Setting btb associativity and return stack entries
-  ****************************************************************/
-  bpred_dir_config (pred->dirpred.bimod, "perceptron", stream); 
-  fprintf(stream, "btb: %d sets x %d associativity", 
-		  pred->btb.sets, pred->btb.assoc);
-  fprintf(stream, "ret_stack: %d entries", pred->retstack.size);	
-}
-
-/* print predictor stats */
-void
-bpred_stats(struct bpred_t *pred,	/* branch predictor instance */
-			FILE *stream)		/* output stream */
-{
-  fprintf(stream, "pred: addr-prediction rate = %f\n",
-		  (double)pred->addr_hits/(double)(pred->addr_hits+pred->misses));
-  fprintf(stream, "pred: dir-prediction rate = %f\n",
-		  (double)pred->dir_hits/(double)(pred->dir_hits+pred->misses));
 }
 
 /* register branch predictor stats */
@@ -419,7 +320,7 @@ bpred_lookup(struct bpred_t *pred,	/* branch predictor instance */
 
   if ((MD_OP_FLAGS(op) & (F_CTRL|F_UNCOND)) != (F_CTRL|F_UNCOND)) {
 	dir_update_ptr->pdir1 =
-	  bpred_dir_lookup (pred->dirpred.bimod, baddr);
+	  bpred_dir_lookup (pred->bimod, baddr);
   }
     
   /*
@@ -502,13 +403,10 @@ bpred_lookup(struct bpred_t *pred,	/* branch predictor instance */
  * hopefully this uncorrupts the stack. */
 void
 bpred_recover(struct bpred_t *pred,	/* branch predictor instance */
-			  md_addr_t baddr,		/* branch address */
 			  int stack_recover_idx)	/* Non-speculative top-of-stack;
 										 * used on mispredict recovery */
 {
-  if (pred == NULL)
-    return;
-
+  if (pred == NULL) return;
   pred->retstack.tos = stack_recover_idx;
 }
 
@@ -536,18 +434,13 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
 
   /* don't change bpred state for non-branch instructions or if this
    * is a stateless predictor*/
-  if (!(MD_OP_FLAGS(op) & F_CTRL))
-    return;
+  if (!(MD_OP_FLAGS(op) & F_CTRL)) return;
 
   /* Have a branch here */
+  if (correct) pred->addr_hits++;
 
-  if (correct)
-    pred->addr_hits++;
-
-  if (!!pred_taken == !!taken)
-    pred->dir_hits++;
-  else
-    pred->misses++;
+  if (!!pred_taken == !!taken) pred->dir_hits++;
+  else pred->misses++;
 
   if (dir_update_ptr->dir.ras)
     {
@@ -559,8 +452,7 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
     {
       if (dir_update_ptr->dir.meta)
 		pred->used_2lev++;
-      else
-		pred->used_bimod++;
+      else pred->used_bimod++;
     }
 
   /* keep stats about JR's; also, but don't change any bpred state for JR's
@@ -568,8 +460,7 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
   if (MD_IS_INDIR(op))
     {
       pred->jr_seen++;
-      if (correct)
-		pred->jr_hits++;
+      if (correct) pred->jr_hits++;
       
       if (!dir_update_ptr->dir.ras)
 		{
@@ -577,27 +468,8 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
 		  if (correct)
 			pred->jr_non_ras_hits++;
 		}
-      else
-		{
-		  /* return that used the ret-addr stack; no further work to do */
-		  return;
-		}
-    }
-  
-  /* update L1 table if appropriate */
-  /* L1 table is updated unconditionally for combining predictor too */
-  if ((MD_OP_FLAGS(op) & (F_CTRL|F_UNCOND)) != (F_CTRL|F_UNCOND) &&
-      (pred->class == BPred2Level || pred->class == BPredComb))
-    {
-      int l1index, shift_reg;
-      
-      /* also update appropriate L1 history register */
-      l1index =
-		(baddr >> MD_BR_SHIFT) & (pred->dirpred.twolev->config.two.l1size - 1);
-      shift_reg =
-		(pred->dirpred.twolev->config.two.shiftregs[l1index] << 1) | (!!taken);
-      pred->dirpred.twolev->config.two.shiftregs[l1index] =
-		shift_reg & ((1 << pred->dirpred.twolev->config.two.shift_width) - 1);
+	  /* return that used the ret-addr stack; no further work to do */
+      else return;
     }
 
   /* find BTB entry if it's a taken branch (don't allocate for non-taken) */
@@ -620,26 +492,25 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
 				  pbtb = &pred->btb.btb_data[i];
 				}
 	      
-			  dassert(pred->btb.btb_data[i].prev 
+			  assert(pred->btb.btb_data[i].prev 
 					  != pred->btb.btb_data[i].next);
 			  if (pred->btb.btb_data[i].prev == NULL)
 				{
 				  /* this is the head of the lru list, ie current MRU item */
-				  dassert(lruhead == NULL);
+				  assert(lruhead == NULL);
 				  lruhead = &pred->btb.btb_data[i];
 				}
 			  if (pred->btb.btb_data[i].next == NULL)
 				{
 				  /* this is the tail of the lru list, ie the LRU item */
-				  dassert(lruitem == NULL);
+				  assert(lruitem == NULL);
 				  lruitem = &pred->btb.btb_data[i];
 				}
 			}
-		  dassert(lruhead && lruitem);
-	  
-		  if (!pbtb)
-			/* missed in BTB; choose the LRU item in this set as the victim */
-			pbtb = lruitem;	
+		  
+		  assert(lruhead && lruitem);
+		  /* missed in BTB; choose the LRU item in this set as the victim */
+		  if (!pbtb) pbtb = lruitem;	
 		  /* else hit, and pbtb points to matching BTB entry */
 	  
 		  /* Update LRU state: selected item, whether selected because it
@@ -648,21 +519,19 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
 		  if (pbtb != lruhead)
 			{
 			  /* this splices out the matched entry... */
-			  if (pbtb->prev)
-				pbtb->prev->next = pbtb->next;
-			  if (pbtb->next)
-				pbtb->next->prev = pbtb->prev;
+			  if (pbtb->prev) pbtb->prev->next = pbtb->next;
+			  if (pbtb->next) pbtb->next->prev = pbtb->prev;
+			  
 			  /* ...and this puts the matched entry at the head of the list */
 			  pbtb->next = lruhead;
 			  pbtb->prev = NULL;
 			  lruhead->prev = pbtb;
-			  dassert(pbtb->prev || pbtb->next);
-			  dassert(pbtb->prev != pbtb->next);
+			  assert(pbtb->prev || pbtb->next);
+			  assert(pbtb->prev != pbtb->next);
 			}
 		  /* else pbtb is already MRU item; do nothing */
 		}
-      else
-		pbtb = &pred->btb.btb_data[index];
+      else pbtb = &pred->btb.btb_data[index];
     }
       
   /* 
@@ -681,38 +550,35 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
 	  int i;
 	  signed int t, x[200];
 	  int theta;
-	  theta = 1.93 * (pred->dirpred.bimod->config.perceptron.bhr_length) + 14;
-	  int index = pred->dirpred.bimod->config.perceptron.index;
-	  int output = pred->dirpred.bimod->config.perceptron.output;
+	  theta = 1.93 * (pred->bimod->config.perceptron.bhr_length) + 14;
+	  int index = pred->bimod->config.perceptron.index;
+	  int output = pred->bimod->config.perceptron.output;
 
 	  if (taken) t = 1;
 	  else t = -1;
 
-	  if (output < 0)
-		output = (-1)*output;
+	  if (output < 0) output = (-1)*output;
 		
 	  if (output <= theta || (output < 0 && t > 0) || (output >= 0 && t < 0))
 		{							
-		  for (i=0; i < pred->dirpred.bimod->config.perceptron.bhr_length; i++)
+		  for (i=0; i < pred->bimod->config.perceptron.bhr_length; i++)
 			{
-			  if (pred->dirpred.bimod->config.perceptron.masks_table[i] == 0)
+			  if (pred->bimod->config.perceptron.masks_table[i] == 0)
 				x[i] = -1;
-			  else
-				x[i] = 1;
+			  else x[i] = 1;
 			  if (t == x[i])
-				pred->dirpred.bimod->config.perceptron.weights_table[index][i]++;
-			  else
-				pred->dirpred.bimod->config.perceptron.weights_table[index][i]--;
-			  if (pred->dirpred.bimod->config.perceptron.weights_table[index][i] > 127)
-				pred->dirpred.bimod->config.perceptron.weights_table[index][i] = 127;
-			  if (pred->dirpred.bimod->config.perceptron.weights_table[index][i] < -128)
-				pred->dirpred.bimod->config.perceptron.weights_table[index][i] = -128;
-				
+				pred->bimod->config.perceptron.weights_table[index][i]++;
+			  else 
+				pred->bimod->config.perceptron.weights_table[index][i]--;
+			  if (pred->bimod->config.perceptron.weights_table[index][i] > 127)
+				pred->bimod->config.perceptron.weights_table[index][i] = 127;
+			  if (pred->bimod->config.perceptron.weights_table[index][i] < -128)
+				pred->bimod->config.perceptron.weights_table[index][i] = -128;
 			}
 
-		  for (i=1; i < pred->dirpred.bimod->config.perceptron.bhr_length; i++)
-			pred->dirpred.bimod->config.perceptron.masks_table[i-1] = pred->dirpred.bimod->config.perceptron.masks_table[i];
-		  pred->dirpred.bimod->config.perceptron.masks_table[pred->dirpred.bimod->config.perceptron.bhr_length-1] = taken;
+		  for (i=1; i < pred->bimod->config.perceptron.bhr_length; i++)
+			pred->bimod->config.perceptron.masks_table[i-1] = pred->bimod->config.perceptron.masks_table[i];
+		  pred->bimod->config.perceptron.masks_table[pred->bimod->config.perceptron.bhr_length-1] = taken;
 		}	
       
       if (taken)
@@ -767,7 +633,7 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
   if (pbtb)
     {
       /* update current information */
-      dassert(taken);
+      assert(taken);
 
       if (pbtb->addr == baddr)
 		{
@@ -784,4 +650,45 @@ bpred_update(struct bpred_t *pred,	/* branch predictor instance */
     }
 }
 
+/*****************************************************************
+ * Printing functions for the neural branch predictor
+ ****************************************************************/
 
+/* print branch direction predictor configuration */
+void
+bpred_dir_config(
+				 struct bpred_dir_t *pred_dir,	/* branch direction predictor instance */
+				 char name[],			/* predictor name */
+				 FILE *stream)			/* output stream */
+{
+  fprintf(stream, "pred_dir: %s:  %d perceptrons, %d weight_bits, %d history\n",
+		  name, pred_dir->config.perceptron.weight_index,
+		  pred_dir->config.perceptron.weight_bits,
+		  pred_dir->config.perceptron.bhr_length);
+}
+
+/* print branch predictor configuration */
+void
+bpred_config(struct bpred_t *pred,	/* branch predictor instance */
+			 FILE *stream)		/* output stream */
+{
+
+  /***************************************************************
+  Setting btb associativity and return stack entries
+  ****************************************************************/
+  bpred_dir_config (pred->bimod, "perceptron", stream); 
+  fprintf(stream, "btb: %d sets x %d associativity", 
+		  pred->btb.sets, pred->btb.assoc);
+  fprintf(stream, "ret_stack: %d entries", pred->retstack.size);	
+}
+
+/* print predictor stats */
+void
+bpred_stats(struct bpred_t *pred,	/* branch predictor instance */
+			FILE *stream)		/* output stream */
+{
+  fprintf(stream, "pred: addr-prediction rate = %f\n",
+		  (double)pred->addr_hits/(double)(pred->addr_hits+pred->misses));
+  fprintf(stream, "pred: dir-prediction rate = %f\n",
+		  (double)pred->dir_hits/(double)(pred->dir_hits+pred->misses));
+}
