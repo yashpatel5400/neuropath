@@ -91,9 +91,6 @@ private:
 	bool globalUsed;
   };
 
-  /** Flag for invalid predictor index */
-  static const int invalidPredictorIndex = -1;
-
   /** Array of counters that make up the global predictor. */
   std::vector<SatCounter> globalCtrs;
 
