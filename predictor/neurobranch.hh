@@ -116,6 +116,12 @@ private:
   /** Mask to control how much history is stored. All of it might not be
    *  used. */
   unsigned historyRegisterMask;
+
+  /** Perceptron weights for neural branch predictor */
+  unsigned perceptronCount;
+  
+  /** Perceptron weights for neural branch predictor */
+  unsigned **weightsTable;
 };
 
 #endif

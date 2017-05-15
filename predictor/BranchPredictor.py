@@ -83,3 +83,11 @@ class AlwaysBP(BranchPredictor):
 
     localPredictorSize = Param.Unsigned(2048, "Size of local predictor")
     localCtrBits = Param.Unsigned(2, "Bits per counter")
+
+class NeuroBP(BranchPredictor):
+    type = 'NeuroBP'
+    cxx_class = 'NeuroBP'
+    cxx_header = "cpu/pred/neurobranch.hh"
+
+    globalPredictorSize = Param.Unsigned(8192, "Size of global predictor")
+    globalCtrBits = Param.Unsigned(2, "Bits per counter")

@@ -44,11 +44,10 @@ NeuroBP::NeuroBP(const NeuroBPParams *params)
 
   // number of hashed perceptrons, i.e. each
   // one act as a local predictor corresponding to local history
-  int perceptronCount = 10;
+  perceptronCount = 10;
     
   // weights per neuron (historyRegister per neuron)
-  int weightsTable[perceptronCount][globalPredictorSize];              
-  
+  unsigned **weightsTable = new unsigned[perceptronCount][globalPredictorSize];             
   for (int i = 0; i < perceptronCount; i++) {
 	for (int j = 0; j < globalPredictorSize; j++)
 	  // initialize each of the perceptrons to have to bias and/or
