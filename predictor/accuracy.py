@@ -11,28 +11,21 @@ import settings as s
 
 import os
 import numpy as np
-from plotly.graph_objs import Scatter, Figure, Layout
+from plotly.graph_objs import Bar, Figure, Layout
 from plotly.offline import plot
 
-def visualize_bps(cond_incorrects, indirect_incorrects, filename):
-    trace1 = go.Bar(
-        x=list(cond_incorrects.keys()),
-        y=list(cond_incorrects.values()),
-        name="Incorrect Conditional Predictions"
-    )
+def visualize_bps(cond_incorrects, indirect_incorrect, filename):
+    data = []
+    for predictor in cond_incorrects.keys():
+        x = ["Conditional", "Indirect"]
+        y = [cond_incorrects[predictor], indirect_incorrect[predictor]]        
+        data.append(Bar(x=x, y=y, name=predictor))
 
-    trace2 = go.Bar(
-        x=list(indirect_incorrects.keys()),
-        y=list(indirect_incorrects.values()),
-        name="Incorrect Indirect Predictions"
-    )
-    
-    data = [trace1, trace2]
-    layout = go.Layout(
+    layout = Layout(
         barmode='group'
     )
 
-    fig = go.Figure(data=data, layout=layout)
+    fig = Figure(data=data, layout=layout)
     plot(fig, filename=filename)
     
 def analyze_executable(executable):
@@ -47,7 +40,7 @@ def analyze_executable(executable):
     
     cond_incorrects    = {}
     indirect_incorrect = {}
-    for i, name in enumerate(s.BP_NAMES):
+    for i, name in enumerate(s.BP_NAMES[:2]):
         os.system(command.format(executable, i))
         
         dump = open(s.INPUT_FILE, "r").readlines()
@@ -59,19 +52,19 @@ def analyze_executable(executable):
         indirect_incorrect[name] = [l.strip() for l in pred_stats
             if "branchPredindirectMispredicted" in l][0].split()[1]
         
+        print("===============================================")
         print("Completed {}".format(name))
         print("===============================================")
     
-    visualize_bps(cond_incorrects, indirect_incorrects,
+    visualize_bps(cond_incorrects, indirect_incorrect,
                   s.EXEC_NAMES[executable])
-    
-    with open("conditional_{}.txt".format(s.EXEC_NAMES[executable])) as f:
+    with open("conditional_{}.txt".format(s.EXEC_NAMES[executable]), "w") as f:
         for name in cond_incorrects:
-            f.writeline("{} : {}".format(name, cond_incorrects[name]))
+            f.write("{} : {}".format(name, cond_incorrects[name]))
 
-    with open("indirect_{}.txt".format(s.EXEC_NAMES[executable])) as f:
-        for name in indirect_incorrects:
-            f.writeline("{} : {}".format(name, indirect_incorrects[name]))
+    with open("indirect_{}.txt".format(s.EXEC_NAMES[executable]), "w") as f:
+        for name in indirect_incorrect:
+            f.write("{} : {}".format(name, indirect_incorrect[name]))
             
 if __name__ == "__main__":
     analyze_executable(0)

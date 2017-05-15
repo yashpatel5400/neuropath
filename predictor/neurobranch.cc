@@ -15,7 +15,6 @@
 NeuroBP::NeuroBP(const NeuroBPParams *params)
   : BPredUnit(params),
 	globalPredictorSize(params->globalPredictorSize),
-	globalCtrBits(params->globalCtrBits),
 	globalHistory(params->numThreads, 0),
 	globalHistoryBits(ceilLog2(params->globalPredictorSize))
 {  
@@ -23,28 +22,25 @@ NeuroBP::NeuroBP(const NeuroBPParams *params)
 	fatal("Invalid global predictor size!\n");
   }
 
-  //Setup the array of counters for the global predictor
-  globalCtrs.resize(globalPredictorSize);
-
-  for (int i = 0; i < globalPredictorSize; ++i)
-	globalCtrs[i].setBits(globalCtrBits);
-
   // Set up the global history mask
   // this is equivalent to mask(log2(globalPredictorSize)
   globalHistoryMask = globalPredictorSize - 1;
 	
-  //Set up historyRegisterMask
+  // Set up historyRegisterMask
   historyRegisterMask = mask(globalHistoryBits);
 
   //Check that predictors don't use more bits than they have available
-  if (globalHistoryMask > historyRegisterMask) {
+  if (globalHistoryMask > historyRegisterMask)
 	fatal("Global predictor too large for global history bits!\n");
-  }
 
   // number of hashed perceptrons, i.e. each
   // one act as a local predictor corresponding to local history
   perceptronCount = 10;
-    
+
+  // Perceptron theta threshold parameter empirically determined in the
+  // fast neural branch predictor paper to be 1.93 * history + 14
+  theta = 1.93 * globalPredictorSize + 14;
+  
   // weights per neuron (historyRegister per neuron)
   weightsTable.assign(perceptronCount,
 					  std::vector<unsigned>(globalPredictorSize, 0));
@@ -79,15 +75,18 @@ NeuroBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
   // the current perceptron weights correspond to the ones
   // being hashed from the program counter and number of perceptrons
   int curPerceptron = branch_addr % perceptronCount; 
-  int weightSumPrediction = 0;
+
+  int y_out = 0;
+  unsigned thread_history = globalHistory[tid];
   
   // the prediction is an indicator of the signed weighted sum
   for (int i = 0; i < globalPredictorSize; i++) {
-	weightSumPrediction +=
-	  weightsTable[curPerceptron][i] * globalHistory[i];
+	if (((thread_history >> i) & 1) == 1)
+	  y_out += weightsTable[curPerceptron][i];
+	else y_out -= weightsTable[curPerceptron][i];
   }
 
-  bool prediction = (weightSumPrediction > 0);
+  bool prediction = (y_out > 0);
   
   // Create BPHistory and pass it back to be recorded.
   BPHistory *history = new BPHistory;
@@ -121,42 +120,37 @@ NeuroBP::update(ThreadID tid, Addr branch_addr, bool taken,
 
   int curPerceptron = branch_addr % perceptronCount; 
   BPHistory *history = static_cast<BPHistory *>(bp_history);
-
-  // Have to update the corresponding weights to negatively reinforce
-  // the outcome of having predicted incorrectly
-  for (int i = 1; i < globalPredictorSize; i++) {
-	if (weightsTable[curPerceptron][i] == globalHistory[i])
-	  weightsTable[curPerceptron][i] += 1;
-	else weightsTable[curPerceptron][i] -= 1;
+  unsigned thread_history = globalHistory[tid];
+  
+  int y_out = 0;
+  for (int i = 0; i < globalPredictorSize; i++) {
+	if (((thread_history >> i) & 1) == 1)
+	  y_out += weightsTable[curPerceptron][i];
+	else y_out -= weightsTable[curPerceptron][i];
   }
-	
+  
   // If this is a misprediction, restore the speculatively
   // updated state (global history register and local history)
   // and update again.
-  if (squashed) {
-	// Global history restore and update
-	globalHistory[tid] = (history->globalHistory << 1) | taken;
-	globalHistory[tid] &= historyRegisterMask;
-
-	weightsTable[curPerceptron][0] -= 1;
-	return;
+  if (squashed || abs(y_out) <= theta) {
+	if (squashed) {
+	  // Global history restore and update
+	  globalHistory[tid] = (history->globalHistory << 1) | taken;
+	  globalHistory[tid] &= historyRegisterMask;
+	}
+	
+	if (taken) weightsTable[curPerceptron][0] += 1;
+	else       weightsTable[curPerceptron][0] -= 1;
+   
+	// Have to update the corresponding weights to negatively reinforce
+	// the outcome of having predicted incorrectly
+	for (int i = 1; i < globalPredictorSize; i++) {
+	  if (((thread_history >> i) & 1) == int(taken))
+		weightsTable[curPerceptron][i]    += 1;
+	  else weightsTable[curPerceptron][i] -= 1;
+	}
   }
-
-  // Update the counters with the proper
-  // resolution of the branch. Histories are updated
-  // speculatively, restored upon squash() calls, and
-  // recomputed upon update(squash = true) calls,
-  // so they do not need to be updated.
-  unsigned global_predictor_idx =
-	history->globalHistory & globalHistoryMask;
-  if (taken) {
-	weightsTable[curPerceptron][0] += 1;
-	globalCtrs[global_predictor_idx].increment();
-  } else {
-	weightsTable[curPerceptron][0] -= 1;
-	globalCtrs[global_predictor_idx].decrement();
-  }
-
+  
   // We're done with this history, now delete it.
   delete history;
 }

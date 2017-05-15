@@ -10,6 +10,7 @@
 #define __CPU_PRED_NEUROBRANCH_PRED_HH__
 
 #include <vector>
+#include <stdlib.h>
 
 #include "base/types.hh"
 #include "cpu/pred/bpred_unit.hh"
@@ -91,20 +92,14 @@ private:
 	bool globalUsed;
   };
 
-  /** Array of counters that make up the global predictor. */
-  std::vector<SatCounter> globalCtrs;
-
   /** Number of entries in the global predictor. */
   unsigned globalPredictorSize;
-
-  /** Number of bits of the global predictor's counters. */
-  unsigned globalCtrBits;
 
   /** Global history register. Contains as much history as specified by
    *  globalHistoryBits. Actual number of bits used is determined by
    *  globalHistoryMask and choiceHistoryMask. */
   std::vector<unsigned> globalHistory;
-
+  
   /** Number of bits for the global history. Determines maximum number of
 	  entries in global and choice predictor tables. */
   unsigned globalHistoryBits;
@@ -119,6 +114,10 @@ private:
 
   /** Perceptron weights for neural branch predictor */
   unsigned perceptronCount;
+
+  /** Perceptron theta threshold parameter empirically estimated in the
+   fast neural branch predictor paper to be 1.93 * history + 14 */
+  unsigned theta;
   
   /** Perceptron weights for neural branch predictor */
   std::vector<std::vector<unsigned>> weightsTable;
