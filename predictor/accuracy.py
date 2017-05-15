@@ -40,7 +40,7 @@ def analyze_executable(executable):
     
     cond_incorrects    = {}
     indirect_incorrect = {}
-    for i, name in enumerate(s.BP_NAMES[:2]):
+    for i, name in enumerate(s.BP_NAMES):
         os.system(command.format(executable, i))
         
         dump = open(s.INPUT_FILE, "r").readlines()
