@@ -1,9 +1,10 @@
 /*****************************************************************
- * File: neurobranch.hh
+ * File: neurobranch.cc
  * Created on: 13-May-2017
  * Author: Yash Patel
  * Description: Perceptron branch predictor based on the one
- * implemented in the fast neural paths branch paper: header file.
+ * implemented in the original neural predictor paper (i.e.
+ * without integrating paths): header file
  ****************************************************************/
 
 #ifndef __CPU_PRED_NEUROBRANCH_PRED_HH__

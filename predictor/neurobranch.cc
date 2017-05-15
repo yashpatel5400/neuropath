@@ -3,7 +3,8 @@
  * Created on: 13-May-2017
  * Author: Yash Patel
  * Description: Perceptron branch predictor based on the one
- * implemented in the fast neural paths branch paper.
+ * implemented in the original neural predictor paper (i.e.
+ * without integrating paths).
  ****************************************************************/
 
 #include "cpu/pred/neurobranch.hh"
@@ -35,7 +36,7 @@ NeuroBP::NeuroBP(const NeuroBPParams *params)
 
   // number of hashed perceptrons, i.e. each
   // one act as a local predictor corresponding to local history
-  perceptronCount = 10;
+  perceptronCount = 20;
 
   // Perceptron theta threshold parameter empirically determined in the
   // fast neural branch predictor paper to be 1.93 * history + 14
@@ -76,17 +77,17 @@ NeuroBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
   // being hashed from the program counter and number of perceptrons
   int curPerceptron = branch_addr % perceptronCount; 
 
-  int y_out = 0;
+  int y_out = weightsTable[curPerceptron][0];
   unsigned thread_history = globalHistory[tid];
-
+  
   // the prediction is an indicator of the signed weighted sum
-  for (int i = 0; i < globalPredictorSize; i++) {
-	if (bool((thread_history >> i) & 1))
+  for (int i = 1; i < globalPredictorSize; i++) {
+	if ((thread_history >> i) & 1)
 	  y_out += weightsTable[curPerceptron][i];
 	else y_out -= weightsTable[curPerceptron][i];
   }
   
-  bool prediction = (y_out > 0);
+  bool prediction = (y_out >= 0);
   
   // Create BPHistory and pass it back to be recorded.
   BPHistory *history = new BPHistory;
@@ -121,10 +122,10 @@ NeuroBP::update(ThreadID tid, Addr branch_addr, bool taken,
   BPHistory *history = static_cast<BPHistory *>(bp_history);
   unsigned thread_history = globalHistory[tid];
   
-  int y_out = 0;
-  
-  for (int i = 0; i < globalPredictorSize; i++) {
-	if (bool((thread_history >> i) & 1))
+  int y_out = weightsTable[curPerceptron][0];  
+  // the prediction is an indicator of the signed weighted sum
+  for (int i = 1; i < globalPredictorSize; i++) {
+	if ((thread_history >> i) & 1)
 	  y_out += weightsTable[curPerceptron][i];
 	else y_out -= weightsTable[curPerceptron][i];
   }
@@ -132,13 +133,7 @@ NeuroBP::update(ThreadID tid, Addr branch_addr, bool taken,
   // If this is a misprediction, restore the speculatively
   // updated state (global history register and local history)
   // and update again.
-  if (squashed || abs(y_out) <= theta) {
-	if (squashed) {
-	  // Global history restore and update
-	  globalHistory[tid] = (history->globalHistory << 1) | taken;
-	  globalHistory[tid] &= historyRegisterMask;
-	}
-	
+  if (squashed || (abs(y_out) <= theta)) {	
 	if (taken) weightsTable[curPerceptron][0] += 1;
 	else       weightsTable[curPerceptron][0] -= 1;
 	
@@ -149,10 +144,11 @@ NeuroBP::update(ThreadID tid, Addr branch_addr, bool taken,
 		weightsTable[curPerceptron][i]    += 1;
 	  else weightsTable[curPerceptron][i] -= 1;
 	}
+
+    // Global history restore and update
+	globalHistory[tid] = (history->globalHistory << 1) | taken;
+	globalHistory[tid] &= historyRegisterMask;
   }
-  
-  // We're done with this history, now delete it.
-  // delete history;
 }
 
 void
