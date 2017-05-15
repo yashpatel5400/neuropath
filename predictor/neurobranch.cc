@@ -8,6 +8,7 @@
 
 #include "cpu/pred/neurobranch.hh"
 
+#include<iostream>
 #include "base/bitfield.hh"
 #include "base/intmath.hh"
 
@@ -16,9 +17,7 @@ NeuroBP::NeuroBP(const NeuroBPParams *params)
 	globalPredictorSize(params->globalPredictorSize),
 	globalCtrBits(params->globalCtrBits),
 	globalHistory(params->numThreads, 0),
-	globalHistoryBits(
-					  ceilLog2(params->globalPredictorSize) >
-					  ceilLog2(params->globalPredictorSize) :)
+	globalHistoryBits(ceilLog2(params->globalPredictorSize))
 {  
   if (!isPowerOf2(globalPredictorSize)) {
 	fatal("Invalid global predictor size!\n");
@@ -47,13 +46,8 @@ NeuroBP::NeuroBP(const NeuroBPParams *params)
   perceptronCount = 10;
     
   // weights per neuron (historyRegister per neuron)
-  unsigned **weightsTable = new unsigned[perceptronCount][globalPredictorSize];             
-  for (int i = 0; i < perceptronCount; i++) {
-	for (int j = 0; j < globalPredictorSize; j++)
-	  // initialize each of the perceptrons to have to bias and/or
-	  // weights towards any of the branching statements (empty neurons)
-	  weightsTable[i][j] = 0;
-  }
+  weightsTable.assign(perceptronCount,
+					  std::vector<unsigned>(globalPredictorSize, 0));
 }
 
 inline
@@ -89,11 +83,11 @@ NeuroBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
   
   // the prediction is an indicator of the signed weighted sum
   for (int i = 0; i < globalPredictorSize; i++) {
-	weightSumPrediction += weightsTable[curPerceptron][i] *
-	  globalHistory[tid][i];
+	weightSumPrediction +=
+	  weightsTable[curPerceptron][i] * globalHistory[i];
   }
 
-  bool prediction = bool(weightSumPrediction > 0);
+  bool prediction = (weightSumPrediction > 0);
   
   // Create BPHistory and pass it back to be recorded.
   BPHistory *history = new BPHistory;
@@ -131,7 +125,7 @@ NeuroBP::update(ThreadID tid, Addr branch_addr, bool taken,
   // Have to update the corresponding weights to negatively reinforce
   // the outcome of having predicted incorrectly
   for (int i = 1; i < globalPredictorSize; i++) {
-	if (weightsTable[curPerceptron][i] == globalHistory[tid][i])
+	if (weightsTable[curPerceptron][i] == globalHistory[i])
 	  weightsTable[curPerceptron][i] += 1;
 	else weightsTable[curPerceptron][i] -= 1;
   }

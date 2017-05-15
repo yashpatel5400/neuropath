@@ -2,8 +2,8 @@
  * File: neurobranch.hh
  * Created on: 13-May-2017
  * Author: Yash Patel
- * Description: Always true static predictor for gem5 simulator
- * environment header.
+ * Description: Perceptron branch predictor based on the one
+ * implemented in the fast neural paths branch paper: header file.
  ****************************************************************/
 
 #ifndef __CPU_PRED_NEUROBRANCH_PRED_HH__
@@ -121,7 +121,7 @@ private:
   unsigned perceptronCount;
   
   /** Perceptron weights for neural branch predictor */
-  unsigned **weightsTable;
+  std::vector<std::vector<unsigned>> weightsTable;
 };
 
 #endif
