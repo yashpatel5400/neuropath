@@ -47,12 +47,16 @@ NeuroPathBP::NeuroPathBP(const NeuroPathBPParams *params)
   perceptronCount = 7;
 
   // Perceptron theta threshold parameter empirically determined in the
-  // fast neural branch predictor paper to be 1.93 * history + 14
-  theta = 1.93 * globalPredictorSize + 14;
+  // fast neural branch predictor paper to be 2.14 * history + 20.58
+  theta = 2.14 * (globalPredictorSize + 1) + 20.58;
   
   // weights per neuron (historyRegister per neuron)
   weightsTable.assign(perceptronCount,
 					  std::vector<unsigned>(globalPredictorSize + 1, 0));
+  
+  // figure out max and min weights values
+  max_weight = (1 << (globalHistoryBits-1)) - 1;
+  min_weight = -(max_weight+1);
 }
 
 void
@@ -71,6 +75,15 @@ NeuroPathBP::updatePath(Addr branch_addr)
   if (path.size() > (globalPredictorSize + 1)) path.pop_back();
 }
 
+// saturating increment or decrement
+
+unsigned
+NeuroPathBP::saturatedUpdate (unsigned weight, bool inc) {
+  if      ( inc && (weight < max_weight)) return weight + 1;
+  else if (!inc && (weight > min_weight)) return weight - 1;
+  return weight;
+}
+
 bool
 NeuroPathBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
 {
@@ -86,7 +99,7 @@ NeuroPathBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
 
   // Create BPHistory and pass it back to be recorded.
   BPHistory *history = new BPHistory;
-  history->globalHistory   = G[tid];
+  history->globalHistory   = SG[tid];
   history->globalPredTaken = prediction;
   bp_history = (void *)history;
 
@@ -114,7 +127,7 @@ NeuroPathBP::uncondBranch(ThreadID tid, Addr pc, void * &bp_history)
 {
   // Create BPHistory and pass it back to be recorded.
   BPHistory *history = new BPHistory;
-  history->globalHistory = G[tid];
+  history->globalHistory = SG[tid];
   history->globalPredTaken = true;
   history->globalUsed = true;
   bp_history = static_cast<void *>(history);
@@ -132,10 +145,9 @@ NeuroPathBP::update(ThreadID tid, Addr branch_addr, bool taken,
   assert(bp_history);
   unsigned k, k_j;
   int curPerceptron = branch_addr % perceptronCount; 
-  int y_out = weightsTable[curPerceptron][0] +
-	SR[globalPredictorSize - 1];
-
-  BPHistory *history = static_cast<BPHistory *>(bp_history);
+  int y_out         = weightsTable[curPerceptron][0] +
+	SR[globalPredictorSize];
+  
   unsigned thread_history = SG[tid];
 
   // maintain R in case the history got squashed
@@ -153,29 +165,27 @@ NeuroPathBP::update(ThreadID tid, Addr branch_addr, bool taken,
   R    = R_prime;
   R[0] = 0;
 
+  // Update non-speculative global history shift register
+  G[tid] = ((G[tid] << 1) | taken);
+  G[tid] &= historyRegisterMask;
+  
   // If this is a misprediction, restore the speculatively
   // updated state (global history register and local history)
   // and update again.
   if (squashed || (abs(y_out) <= theta)) {
 	if (squashed) {
-	  std::cout << "SQUASHED" << std::endl;
 	  // Global history restore and update
-	  SG[tid] = ((history->globalHistory << 1) | taken);
-	  SG[tid] &= historyRegisterMask;
-
+	  SG[tid] = G[tid];
 	  SR = R;
 	}
 	
-	if (taken) weightsTable[curPerceptron][0] += 1;
-	else       weightsTable[curPerceptron][0] -= 1;
-	
+	weightsTable[curPerceptron][0] = saturatedUpdate(
+	    weightsTable[curPerceptron][0], taken);
 	for (int j = 1; j <= globalPredictorSize; j++) {
 	  // weight is chosen mod path.size in the edge case of short history
 	  k = (path[j % path.size()] % perceptronCount); 
-	  
-	  if (((thread_history >> j) & 1) == taken)
-		   weightsTable[k][j] += 1;
-	  else weightsTable[k][j] -= 1;
+	  weightsTable[k][j] = saturatedUpdate(weightsTable[k][j],
+	      ((thread_history >> j) & 1) == taken);
 	}
   }
 }
@@ -186,7 +196,7 @@ NeuroPathBP::squash(ThreadID tid, void *bp_history)
   BPHistory *history = static_cast<BPHistory *>(bp_history);
 
   // Restore global history to state prior to this branch.
-  SG[tid] = history->globalHistory;
+  SG[tid] = G[tid];
 
   // Restore SR to a non-speculative version computed end if
   // using only non-speculative information

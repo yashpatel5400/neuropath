@@ -80,6 +80,13 @@ private:
    * @param branch_addr Address object containing memory location obj
    */
   void inline updatePath(Addr branch_addr);
+
+  /**
+   * Updates the corresponding weight parameter w/ saturation factor
+   * @param weight Current value of weight to be updated
+   * @param inc Whether the weight is to be incremented or decremented
+   */
+  unsigned saturatedUpdate (unsigned weight, bool inc);
   
   /**
    * The branch history information that is created upon predicting
@@ -95,7 +102,7 @@ private:
 
   /** Number of entries in the global predictor. */
   unsigned globalPredictorSize;
-
+  
   /** Global history register, denoted G in this version to match the
    *  notation from the paper. Contains as much history as specified by
    *  globalHistoryBits. Actual number of bits used is determined by
@@ -140,7 +147,13 @@ private:
   /** Perceptron theta threshold parameter empirically estimated in the
    fast neural branch predictor paper to be 1.93 * history + 14 */
   unsigned theta;
-  
+
+  /** Saturated value of the maximum weight on a branch */
+  unsigned max_weight;
+
+  /** Saturated value of the minimum weight on a branch */
+  unsigned min_weight;
+
   /** Perceptron weights for neural branch predictor */
   std::vector<std::vector<unsigned>> weightsTable;
 };
