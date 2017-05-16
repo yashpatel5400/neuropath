@@ -46,7 +46,8 @@ def simulate_BP(predictor, executable):
         BiModeBP(),     # 2-bit history mode predictor
         LTAGE(),        # often best-performing current mainstream predictor
         AlwaysBP(),     # always true branch predictor (static)
-        NeuroBP()       # single perceptron neural branch predictor
+        NeuroBP(),      # single perceptron neural branch predictor
+        NeuroPathBP()   # neural path branch predictor
     ]
 
     system.cpu.branchPred = branchPredictors[predictor]
@@ -61,9 +62,13 @@ def simulate_BP(predictor, executable):
 
     # create the interrupt controller for the CPU and connect to the membus
     system.cpu.createInterruptController()
-    system.cpu.interrupts[0].pio = system.membus.master
-    system.cpu.interrupts[0].int_master = system.membus.slave
-    system.cpu.interrupts[0].int_slave = system.membus.master
+
+    # For x86 only, make sure the interrupts are connected to the memory
+    # Note: these are directly connected to the memory bus and are not cached
+    if m5.defines.buildEnv['TARGET_ISA'] == "x86":
+        system.cpu.interrupts[0].pio = system.membus.master
+        system.cpu.interrupts[0].int_master = system.membus.slave
+        system.cpu.interrupts[0].int_slave = system.membus.master
 
     # Create a DDR3 memory controller and connect it to the membus
     system.mem_ctrl = DDR3_1600_8x8()
@@ -72,7 +77,7 @@ def simulate_BP(predictor, executable):
 
     # Connect the system up to the membus
     system.system_port = system.membus.slave
-
+    
     # Create a process for a simple "Hello World" application
     process = Process()
 
@@ -134,6 +139,7 @@ parser.add_argument('--exec', metavar='exec', type=int,
                     (3) LTAGE
                     (4) StaticBP
                     (5) NeuralBP
+                    (6) NeuralPathBP
 """
 )
 

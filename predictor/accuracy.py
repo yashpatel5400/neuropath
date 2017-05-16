@@ -28,7 +28,7 @@ def visualize_bps(cond_incorrects, indirect_incorrect, filename):
     fig = Figure(data=data, layout=layout)
     plot(fig, filename=filename)
     
-def analyze_executable(executable):
+def analyze_executable(isa, executable):
     """
     Given int corresponding to the executable to test on, runs the
     simulations for all the branch predictors, outputting results to 
@@ -36,12 +36,12 @@ def analyze_executable(executable):
     @param executable The integer corresponding to which executable to run
     @return void
     """
-    command = "build/X86/gem5.opt configs/branch/predict.py --exec {} --pred {}"
+    command = "build/{}/gem5.opt configs/branch/predict.py --exec {} --pred {}"
     
     cond_incorrects    = {}
     indirect_incorrect = {}
     for i, name in enumerate(s.BP_NAMES):
-        os.system(command.format(executable, i))
+        os.system(command.format(isa, executable, i))
         
         dump = open(s.INPUT_FILE, "r").readlines()
         # only the stats relevant to the branch predictor
@@ -55,16 +55,17 @@ def analyze_executable(executable):
         print("===============================================")
         print("Completed {}".format(name))
         print("===============================================")
-    
-    visualize_bps(cond_incorrects, indirect_incorrect,
-                  s.EXEC_NAMES[executable])
-    with open("conditional_{}.txt".format(s.EXEC_NAMES[executable]), "w") as f:
-        for name in cond_incorrects:
-            f.write("{} : {}".format(name, cond_incorrects[name]))
+        with open("m5cache/conditional_{}_{}.txt".format(
+                name, s.EXEC_NAMES[executable]), "w") as f:
+            f.write("{} : {}\n".format(name, cond_incorrects[name]))
 
-    with open("indirect_{}.txt".format(s.EXEC_NAMES[executable]), "w") as f:
-        for name in indirect_incorrect:
-            f.write("{} : {}".format(name, indirect_incorrect[name]))
-            
+        with open("m5cache/indirect_{}_{}.txt".format(
+                name, s.EXEC_NAMES[executable]), "w") as f:
+            f.write("{} : {}\n".format(name, indirect_incorrect[name]))
+
+    visualize_bps(cond_incorrects, indirect_incorrect,
+                  "{}.html".format(s.EXEC_NAMES[executable]))
+                
 if __name__ == "__main__":
-    analyze_executable(0)
+    for executable in [5]:
+        analyze_executable("X86", executable)
