@@ -105,11 +105,32 @@
 				Branch prediction has become an essential part of the CPU pipeline, particularlyl to increase ILP (instruction-level parallelism). Specifically, branch predictors are responsible for pre-fetching instructions for decoding/execution in conditional branch locations, i.e. points in the code where it is impossible to know which instruction to fetch next. In other words, the CPU guesses the outcome of the branch and fetches instructions accordingly, hoping to avoid the seeming possible of needing to wait for the conditional branch to finish executing to fetch/process further instructions. Modern branch predictors typically integrate global history and local history, which respectively correspond to applying the result of previous branch outcomes in the overall program and at particular values for the program counter (i.e. by line number in the code). However, with the uprising of neural nets, it was unavoidable that they would too be tested in this regime.
 				<br><br>
 				The main issue with neural net implementations is the latency, i.e. how long it would take for the prediction to occur relative to the time spent. Despite maybe a few percentage points extra, perceptron use was largely relegated as not likely to be adopted, seeing as modern methods already achieve accuracies of upwards of 90-95%. However, recent research investigations have revealed otherwise, citing that perceptrons may in fact be comparable in accuracy and latency to those methods that are currently most widespread. We explored several branch predictor designs across different executables and similarly between ISAs, i.e. ARM and X86, all through the gem5 simulator environment.
+				
 			  </p>
+			  <hr>
+			  <h4 class="title"> Branch Prediction Results </h4>
+              <div class="content table-responsive table-full-width">
+                <table class="table table-hover table-striped">
+                  <thead>
+                    <th>Executable</th>
+                    <th>Conditional Accuracy</th>
+                    <th>Indirect Accuracy</th>
+                    <th>Latency</th>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+			  </div>
 			</div>
-
-			<div id="StaticBP" class="tabcontent">
-			  <h2 class="col-md-12"> StaticBP </h2><hr>
+			
+			  <div id="StaticBP" class="tabcontent">
+				<h2 class="col-md-12"> StaticBP </h2><hr>
 			  <p> The class of branch predictors can be subdivided into two major classes: "static" and "dynamic." Static branch predictors are the simplest variant of branch predictors. As suggested by the name, these predictors essentially guess the same result regardless of its performance on past conditional cases. That is, a static predictor will either always predict "true" whenever it encounters a branch (i.e. will inform the CPU to directly fetch instructions for the "true" case) or "false." There are some variants thereof, i.e. alternate between the two, but these two are clearly the most sensible and straightforwad to implement. Surprisingly, static branch predictors work quite well in practice, coupled with their 0 time latency, since no computation must be performed prior to fetching instructions. Thus, static BPs form a solid baseline from which to evaluate dynamic BPs. </p>
 			</div>
 			
