@@ -68,10 +68,17 @@
 	  <div class="main-panel">
 		<div class="content">
 		  <div class="col-md-12">
+			<h1 class="col-md-12"> NeuroBPredict </h1>
+			
 			<div class="tab">
 			  <button class="tablinks" onclick="openCity(event, 'BranchPredictor')">
 				Branch Predictor
 			  </button>
+
+			  <button class="tablinks" onclick="openCity(event, 'StaticBP')" >
+				StaticBP
+			  </button>
+			  
 			  <button class="tablinks" onclick="openCity(event, 'LocalBP')" >
 				LocalBP
 			  </button>
@@ -86,10 +93,6 @@
 			  
 			  <button class="tablinks" onclick="openCity(event, 'LTAGE')" >
 				LTAGE
-			  </button>
-
-			  <button class="tablinks" onclick="openCity(event, 'StaticBP')" >
-				StaticBP
 			  </button>
 			  
 			  <button class="tablinks" onclick="openCity(event, 'NeuralBP')" >
@@ -110,40 +113,47 @@
 				The main issue with neural net implementations is the latency, i.e. how long it would take for the prediction to occur relative to the time spent. Despite maybe a few percentage points extra, perceptron use was largely relegated as not likely to be adopted, seeing as modern methods already achieve accuracies of upwards of 90-95%. However, recent research investigations have revealed otherwise, citing that perceptrons may in fact be comparable in accuracy and latency to those methods that are currently most widespread. We explored several branch predictor designs across different executables and similarly between ISAs, i.e. ARM and X86, all through the gem5 simulator environment.
 			  </p>
 			</div>
+
+			<div id="StaticBP" class="tabcontent">
+			  <h2 class="col-md-12"> StaticBP </h2><hr>
+			  <p> The class of branch predictors can be subdivided into two major classes: "static" and "dynamic." Static branch predictors are the simplest variant of branch predictors. As suggested by the name, these predictors essentially guess the same result regardless of its performance on past conditional cases. That is, a static predictor will either always predict "true" whenever it encounters a branch (i.e. will inform the CPU to directly fetch instructions for the "true" case) or "false." There are some variants thereof, i.e. alternate between the two, but these two are clearly the most sensible and straightforwad to implement. Surprisingly, static branch predictors work quite well in practice, coupled with their 0 time latency, since no computation must be performed prior to fetching instructions. Thus, static BPs form a solid baseline from which to evaluate dynamic BPs. </p>
+			</div>
 			
 			<div id="LocalBP" class="tabcontent">
 			  <h2 class="col-md-12"> LocalBP </h2><hr>
-			  <p> Test input </p>
+			  <p> Dynamic BPs, on the other hand, typically integrate either global history and local history or a combination thereof. The LocalBP chooses to exclusively make use of the local history for its predictions, meaning that we have a table (i.e. an array) indexed by a hash of the program counter. This predictor makes use of a saturated counter, which is a commonly integrated structure in branch predictors that prevents a single change in conditional outcome from completely throwing off future predictions. Specifically, this "saturated counter" is essentially a Markov Model with four states, called "strongly accepting," "weakly accepting," "weakly rejecting," and "strongly rejecting," where the accepting states both correspond to when the BP predicts the conditional will go along the true branch and the rejecting the opposite.
+				<br><br>
+			  Thus, each of the distinct local program counter hashes corresponds to a different saturated state machine. These predictors typically perform well when different conditionals across the program have distinct behaviors, although it suffers the downside of not capturing any overall trends in the program (i.e. if most conditionals are true). </p>
 			</div>
 			
 			<div id="TournamentBP" class="tabcontent">
 			  <h2 class="col-md-12"> TournamentBP </h2><hr>
-			  <p> Test input </p>
+			  <p> Unlike the previous example, the tournament branch predictor makes use of several of the previous branches. That is, it makes correlated predictions based on the last m branches. In particular, each of the local branches has an indicator that keeps track of which of the past m branches is most correlated with outcomes, making it simply an extension of the LocalBP, since tournament can easily capture if the most recent branch is most heavily correlated with the outcome.
+
+				Unlike the single local branch predictor, this predictor is capable of making predictions that depends on results further back than the most recent branch, meaning it effectively extends the scope of what is "significant" in making a prediction. Of course, with this extended input domain comes the difficulty of including factors that may not be relevant yet may seem to be in a training sample along with increased prediction/training latency.
+			  </p>
 			</div>
 
 			<div id="BimodalBP" class="tabcontent">
 			  <h2 class="col-md-12"> BimodalBP </h2><hr>
-			  <p> Test input </p>
+			  <p> Unlike both the tournament and local branch predictors, the Bimodal branch predictor, as suggested by the name, maintains both a global and local history of conditional branches down which we have travelled and also maintain a "choosing" parameter that determines which, between the global and local histories, is more directly correlated with the outputs. In that way, future predictions by this bimodal predictor can make use of both the global and local structures through the program. That is, we can detect if some global structure is emerging (i.e. alternating between true/false loops) and local constructs, further increasing the scope. These branch predictors tend to do quite well in practice and have become largely, in one variant or another, the de facto standard of branch predictors. </p>
 			</div>
 
 			<div id="LTAGE" class="tabcontent">
 			  <h2 class="col-md-12"> LTAGE </h2><hr>
-			  <p> Test input </p>
-			</div>
-
-			<div id="StaticBP" class="tabcontent">
-			  <h2 class="col-md-12"> StaticBP </h2><hr>
-			  <p> Test input </p>
+			  <p> Similar to how neural networks grew so prevalent in recent times, the LTAGE branch predictor was essentially born out of online branch predictor competitions. That is, competitions where the goal was to most accurately predict conditional outcomes produced by CPU dumps (with penalties associated to latency). LTAGE is simply a very specific implementation of a Bimodal BP, namely one that uses global and local branches, which you can more thoroughly explore through their paper at: <a href="https://www.jilp.org/vol9/v9paper6.pdf">https://www.jilp.org/vol9/v9paper6.pdf</a> </p>
 			</div>
 
 			<div id="NeuralBP" class="tabcontent">
 			  <h2 class="col-md-12"> NeuralBP </h2><hr>
-			  <p> Test input </p>
+			  <p> Of course, as previously mentioned, with the uprising of neural nets, it was unavoidable that they would too be applied to branch prediction. The first attempt to apply neural nets to this regime was as follows: the main issue with applying complicated networks is that, since these predictors are extremely low level (on the CPU), they cannot afford the overhead necessary to perform the predictions. In other words, the "neural net" scope must be greatly limited as to allow the predictions to be made in a reasonable time frame. It turns out that this structure is simply a one layer network of neurons, i.e. a series of weights associated to different points in the program, set up in a table-like fashion.
+				<br><br>
+				In other words, different program counters (similar to the local branch predictor) hash to different locations in the weights matrix, where each row corresponds to a fixed hashed pc value. The input to this neuron is a vector of the global history of conditional outcomes at the point of prediction in the program (similar to the TournamentBP), meaning that a weighted linear combination thereof is used to predict the final outcome of the branch. Thus, this algorithm very closely resembles that of the TournamentBP with the exception of how it is updated, which is per the standard neural update rules. More recent modifications, however, have been made to this predictor, described below. </p>
 			</div>
 
 			<div id="NeuralPathBP" class="tabcontent">
 			  <h2 class="col-md-12"> NeuralPathBP </h2><hr>
-			  <p> Test input </p>
+			  <p> The fast Neural Path BP is one of the state-of-the-art predictors that brought neural perceptron design back into focus in the realm of BPs. The algorithm that was implemented here is more thoroughly described in: <a href="https://www.microarch.org/micro36/html/pdf/jimenez-FastPath.pdf">https://www.microarch.org/micro36/html/pdf/jimenez-FastPath.pdf</a>. As a brief overview, this predictor essentially integrates the neural structure of the previous algorithm with the "paths taken" in the program. That is, we maintain a global history of the conditional addresses, which captures how we are jumping around the program, which serves the purpose of being the input vector combined as a weighted sum by the corresponding weights of the vectors. Thus, unlike the previous algorithm, this updates several rows, presumably to capture how the same location in the program may be correlated with many subsequent conditional outcomes, which this version can directly capture in its updates. </p>
 			</div>		  
 		</div>
 	  </div>
