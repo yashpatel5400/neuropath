@@ -75,7 +75,8 @@ bool
 NeuroPathBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
 {
   updatePath(branch_addr);
-  
+
+  unsigned k_j;
   // the current perceptron weights correspond to the ones
   // being hashed from the program counter and number of perceptrons
   int curPerceptron = branch_addr % perceptronCount; 
@@ -93,11 +94,11 @@ NeuroPathBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
   SR_prime.assign(globalPredictorSize, 0);
   
   for (int j = 0; j < globalPredictorSize; j++) {
-	k = globalPredictorSize - j;
-	SR_prime[k + 1] = SR[k];
+	k_j = globalPredictorSize - j;
+	SR_prime[k_j + 1] = SR[k_j];
 	// case where the prediction is "taken"
-	if (prediction) SR_prime[k + 1] += weightsTable[curPerceptron][j];
-	else            SR_prime[k + 1] -= weightsTable[curPerceptron][j];
+	if (prediction) SR_prime[k_j + 1] += weightsTable[curPerceptron][j];
+	else            SR_prime[k_j + 1] -= weightsTable[curPerceptron][j];
   }
 
   SR = SR_prime;
@@ -129,13 +130,13 @@ NeuroPathBP::update(ThreadID tid, Addr branch_addr, bool taken,
 				void *bp_history, bool squashed)
 {
   assert(bp_history);
-  
+  unsigned k, k_j;
   int curPerceptron = branch_addr % perceptronCount; 
   int y_out = weightsTable[curPerceptron][0] +
 	SR[globalPredictorSize - 1];
 
   BPHistory *history = static_cast<BPHistory *>(bp_history);
-  unsigned thread_history = globalHistory[tid];
+  unsigned thread_history = G[tid];
 
   // maintain R in case the history got squashed
   std::vector<unsigned> R_prime;
@@ -150,12 +151,12 @@ NeuroPathBP::update(ThreadID tid, Addr branch_addr, bool taken,
 	G[tid] &= historyRegisterMask;
 	
 	for (int j = 0; j < globalPredictorSize; j++) {
-	  k = globalPredictorSize - j;
-	  R_prime[k + 1] = R[k];
+	  k_j = globalPredictorSize - j;
+	  R_prime[k_j + 1] = R[k_j];
 	  
 	  // case where the prediction is "taken"
-	  if (taken) R_prime[k + 1] += weightsTable[curPerceptron][j];
-	  else       R_prime[k + 1] -= weightsTable[curPerceptron][j];
+	  if (taken) R_prime[k_j + 1] += weightsTable[curPerceptron][j];
+	  else       R_prime[k_j + 1] -= weightsTable[curPerceptron][j];
 	  
 	  if (j == 0) { // special case for first iteration to update bias
 		if (taken) weightsTable[curPerceptron][0] += 1;
