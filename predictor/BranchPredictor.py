@@ -91,3 +91,12 @@ class NeuroBP(BranchPredictor):
 
     globalPredictorSize = Param.Unsigned(8192, "Size of global predictor")
     globalCtrBits = Param.Unsigned(2, "Bits per counter")    
+
+    
+class NeuroPathBP(BranchPredictor):
+    type = 'NeuroPathBP'
+    cxx_class = 'NeuroPathBP'
+    cxx_header = "cpu/pred/neuropath.hh"
+
+    globalPredictorSize = Param.Unsigned(8192, "Size of global predictor")
+    globalCtrBits = Param.Unsigned(2, "Bits per counter")    
