@@ -14,19 +14,24 @@ import numpy as np
 from plotly.graph_objs import Bar, Figure, Layout
 from plotly.offline import plot
 
-def visualize_bps(cond_incorrects, indirect_incorrect, filename):
+def visualize_bps(executable):
+    files = os.listdir(s.OUTPUT_DIR)
+    exec_name = s.EXEC_NAMES[executable]
+    to_visualize = [f for f in files if exec_name in f]
+    
     data = []
-    for predictor in cond_incorrects.keys():
-        x = ["Conditional", "Indirect"]
-        y = [cond_incorrects[predictor], indirect_incorrect[predictor]]        
-        data.append(Bar(x=x, y=y, name=predictor))
-
+    for f in to_visualize:
+        props = open("{}/{}".format(s.OUTPUT_DIR, f), "r").readlines()
+        prop_values = [float(prop.split(":")[1].strip()) for prop in props]
+        prop_labels = ["Conditional", "Indirect", "Latency"]
+        data.append(Bar(x=prop_labels, y=prop_values, name=f.split("_")[0]))
+        
     layout = Layout(
         barmode='group'
     )
 
     fig = Figure(data=data, layout=layout)
-    plot(fig, filename=filename)
+    plot(fig, filename="{}/{}.html".format(s.FIGURE_DIR, exec_name))
     
 def analyze_executable(isa, executable):
     """
@@ -40,7 +45,7 @@ def analyze_executable(isa, executable):
     
     cond_incorrects    = {}
     indirect_incorrect = {}
-    for i in [6]:
+    for i in range(len(s.BP_NAMES)):
         os.system(command.format(isa, executable, i))
         name = s.BP_NAMES[i]
         dump = open(s.INPUT_FILE, "r").readlines()
@@ -53,12 +58,13 @@ def analyze_executable(isa, executable):
 
         print("===============================================")
         print("Completed {}".format(name))
-        print("===============================================")
-        for attribute, value in zip(attributes, attribute_values):
-            with open("m5cached/{}_{}.txt".format(
-                name, s.EXEC_NAMES[executable]), "w") as f:
+        print("===============================================")        
+        with open("{}/{}_{}.txt".format(s.OUTPUT_DIR,
+            name, s.EXEC_NAMES[executable]), "w") as f:
+            for attribute, value in zip(attributes, attribute_values):
                 f.write("{} : {}\n".format(attribute, value))
                 
 if __name__ == "__main__":
-    for executable in [6]:
+    for executable in range(6,13): # range(, 13):
         analyze_executable("X86", executable)
+        # visualize_bps(executable)
