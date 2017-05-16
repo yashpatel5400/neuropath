@@ -22,17 +22,9 @@ NeuroBP::NeuroBP(const NeuroBPParams *params)
   if (!isPowerOf2(globalPredictorSize)) {
 	fatal("Invalid global predictor size!\n");
   }
-
-  // Set up the global history mask
-  // this is equivalent to mask(log2(globalPredictorSize)
-  globalHistoryMask = globalPredictorSize - 1;
 	
   // Set up historyRegisterMask
   historyRegisterMask = mask(globalHistoryBits);
-
-  //Check that predictors don't use more bits than they have available
-  if (globalHistoryMask > historyRegisterMask)
-	fatal("Global predictor too large for global history bits!\n");
 
   // number of hashed perceptrons, i.e. each
   // one act as a local predictor corresponding to local history
@@ -44,7 +36,7 @@ NeuroBP::NeuroBP(const NeuroBPParams *params)
   
   // weights per neuron (historyRegister per neuron)
   weightsTable.assign(perceptronCount,
-					  std::vector<unsigned>(globalPredictorSize, 0));
+					  std::vector<unsigned>(globalPredictorSize + 1, 0));
 }
 
 inline
@@ -76,13 +68,12 @@ NeuroBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
   // the current perceptron weights correspond to the ones
   // being hashed from the program counter and number of perceptrons
   int curPerceptron = branch_addr % perceptronCount; 
-
-  int y_out = weightsTable[curPerceptron][0];
   unsigned thread_history = globalHistory[tid];
   
   // the prediction is an indicator of the signed weighted sum
-  for (int i = 1; i < globalPredictorSize; i++) {
-	if ((thread_history >> i) & 1)
+  int y_out = weightsTable[curPerceptron][0];
+  for (int i = 1; i <= globalPredictorSize; i++) {
+	if ((thread_history >> (i - 1)) & 1)
 	  y_out += weightsTable[curPerceptron][i];
 	else y_out -= weightsTable[curPerceptron][i];
   }
@@ -90,13 +81,11 @@ NeuroBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
   bool prediction = (y_out >= 0);
   
   // Create BPHistory and pass it back to be recorded.
-  BPHistory *history = new BPHistory;
-  history->globalHistory = globalHistory[tid];
+  BPHistory *history       = new BPHistory;
+  history->globalHistory   = globalHistory[tid];
   history->globalPredTaken = prediction;
   bp_history = (void *)history;
   
-  if (prediction) updateGlobalHistTaken(tid);
-  else updateGlobalHistNotTaken(tid);
   return prediction;
 }
 
@@ -104,10 +93,10 @@ void
 NeuroBP::uncondBranch(ThreadID tid, Addr pc, void * &bp_history)
 {  
   // Create BPHistory and pass it back to be recorded.
-  BPHistory *history = new BPHistory;
-  history->globalHistory = globalHistory[tid];
+  BPHistory *history       = new BPHistory;
+  history->globalHistory   = globalHistory[tid];
   history->globalPredTaken = true;
-  history->globalUsed = true;
+  history->globalUsed      = true;
   bp_history = static_cast<void *>(history);
   updateGlobalHistTaken(tid);
 }
@@ -119,13 +108,12 @@ NeuroBP::update(ThreadID tid, Addr branch_addr, bool taken,
   assert(bp_history);
   
   int curPerceptron = branch_addr % perceptronCount; 
-  BPHistory *history = static_cast<BPHistory *>(bp_history);
   unsigned thread_history = globalHistory[tid];
   
-  int y_out = weightsTable[curPerceptron][0];  
   // the prediction is an indicator of the signed weighted sum
-  for (int i = 1; i < globalPredictorSize; i++) {
-	if ((thread_history >> i) & 1)
+  int y_out = weightsTable[curPerceptron][0];
+  for (int i = 1; i <= globalPredictorSize; i++) {
+	if ((thread_history >> (i - 1)) & 1)
 	  y_out += weightsTable[curPerceptron][i];
 	else y_out -= weightsTable[curPerceptron][i];
   }
@@ -140,15 +128,15 @@ NeuroBP::update(ThreadID tid, Addr branch_addr, bool taken,
 	// Have to update the corresponding weights to negatively reinforce
 	// the outcome of having predicted incorrectly
 	for (int i = 1; i < globalPredictorSize; i++) {
-	  if (((thread_history >> i) & 1) == taken)
+	  if (((thread_history >> (i - 1)) & 1) == taken)
 		weightsTable[curPerceptron][i]    += 1;
 	  else weightsTable[curPerceptron][i] -= 1;
 	}
-
-    // Global history restore and update
-	globalHistory[tid] = (history->globalHistory << 1) | taken;
-	globalHistory[tid] &= historyRegisterMask;
   }
+  
+  // Global history restore and update
+  globalHistory[tid] = (globalHistory[tid] << 1) | taken;
+  globalHistory[tid] &= historyRegisterMask;
 }
 
 void

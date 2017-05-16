@@ -96,7 +96,8 @@ private:
   /** Number of entries in the global predictor. */
   unsigned globalPredictorSize;
 
-  /** Global history register. Contains as much history as specified by
+  /** Global history register - used for only the outcomes of 
+   *  branches as they are executed. Contains as much history as specified by
    *  globalHistoryBits. Actual number of bits used is determined by
    *  globalHistoryMask and choiceHistoryMask. */
   std::vector<unsigned> globalHistory;
