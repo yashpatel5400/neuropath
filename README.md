@@ -25,3 +25,10 @@ in the Gem5 CPU simulator environment for an X86 ISA.
 For COS 583: Great Moments in Computing at Princeton University
 
 Results available at: http://fast-caverns-95520.herokuapp.com/table.html
+
+Progress Steps:
+(1) Implement neural pathing
+(2) Parallelize codebase
+(3) Consider other ISAs
+(4) Complete analyses/publish to site
+(5) Explore alternate supervised techniques
