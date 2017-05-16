@@ -36,23 +36,23 @@ NeuroPathBP::NeuroPathBP(const NeuroPathBPParams *params)
 
   // speculative running total computing the perceptron output
   // each entry j corresponds to partial sum of j steps forward
-  SR.assign(globalPredictorSize, 0);
+  SR.assign(globalPredictorSize + 1, 0);
 
   // running total computing the perceptron output
   // each entry j corresponds to partial sum of j steps forward
-  R.assign(globalPredictorSize, 0);
+  R.assign(globalPredictorSize + 1, 0);
 
   // number of hashed perceptrons, i.e. each
   // one act as a local predictor corresponding to local history
-  perceptronCount = 10;
+  perceptronCount = 25;
 
   // Perceptron theta threshold parameter empirically determined in the
   // fast neural branch predictor paper to be 1.93 * history + 14
-  theta = 1.93 * globalPredictorSize + 14;
+  theta = 19.3 * globalPredictorSize + 14;
   
   // weights per neuron (historyRegister per neuron)
   weightsTable.assign(perceptronCount,
-					  std::vector<unsigned>(globalPredictorSize, 0));
+					  std::vector<unsigned>(globalPredictorSize + 1, 0));
 }
 
 void
@@ -68,7 +68,7 @@ NeuroPathBP::updatePath(Addr branch_addr)
 {
   path.insert(path.begin(), branch_addr);
   // only maintains the last H (globalPredictorSize) addresses in history
-  if (path.size() > globalPredictorSize) path.pop_back();
+  if (path.size() > (globalPredictorSize + 1)) path.pop_back();
 }
 
 bool
@@ -80,20 +80,20 @@ NeuroPathBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
   // the current perceptron weights correspond to the ones
   // being hashed from the program counter and number of perceptrons
   int curPerceptron = branch_addr % perceptronCount; 
-  int y_out = weightsTable[curPerceptron][0] +
-	SR[globalPredictorSize - 1];
-  bool prediction = (y_out >= 0);
+  int y_out         = weightsTable[curPerceptron][0] +
+	SR[globalPredictorSize];
+  bool prediction   = (y_out >= 0);
 
   // Create BPHistory and pass it back to be recorded.
   BPHistory *history = new BPHistory;
-  history->globalHistory = G[tid];
+  history->globalHistory   = G[tid];
   history->globalPredTaken = prediction;
   bp_history = (void *)history;
 
   std::vector<unsigned> SR_prime;
-  SR_prime.assign(globalPredictorSize, 0);
+  SR_prime.assign(globalPredictorSize + 1, 0);
   
-  for (int j = 0; j < globalPredictorSize; j++) {
+  for (int j = 1; j <= globalPredictorSize; j++) {
 	k_j = globalPredictorSize - j;
 	SR_prime[k_j + 1] = SR[k_j];
 	// case where the prediction is "taken"
@@ -101,7 +101,7 @@ NeuroPathBP::lookup(ThreadID tid, Addr branch_addr, void * &bp_history)
 	else            SR_prime[k_j + 1] -= weightsTable[curPerceptron][j];
   }
 
-  SR = SR_prime;
+  SR    = SR_prime;
   SR[0] = 0;
   
   SG[tid] = ((SG[tid] << 1) | prediction);
@@ -136,12 +136,23 @@ NeuroPathBP::update(ThreadID tid, Addr branch_addr, bool taken,
 	SR[globalPredictorSize - 1];
 
   BPHistory *history = static_cast<BPHistory *>(bp_history);
-  unsigned thread_history = G[tid];
+  unsigned thread_history = SG[tid];
 
   // maintain R in case the history got squashed
   std::vector<unsigned> R_prime;
-  R_prime.assign(globalPredictorSize, 0);
+  R_prime.assign(globalPredictorSize + 1, 0);
   
+  for (int j = 1; j <= globalPredictorSize; j++) {
+	k_j = globalPredictorSize - j;
+	R_prime[k_j + 1] = R[k_j];
+	// case where the prediction is "taken"
+	if (taken) R_prime[k_j + 1] += weightsTable[curPerceptron][j];
+	else       R_prime[k_j + 1] -= weightsTable[curPerceptron][j];
+  }
+
+  R    = R_prime;
+  R[0] = 0;
+
   // If this is a misprediction, restore the speculatively
   // updated state (global history register and local history)
   // and update again.
@@ -149,28 +160,17 @@ NeuroPathBP::update(ThreadID tid, Addr branch_addr, bool taken,
 	// Global history restore and update
 	G[tid] = ((history->globalHistory << 1) | taken);
 	G[tid] &= historyRegisterMask;
-	
-	for (int j = 0; j < globalPredictorSize; j++) {
-	  k_j = globalPredictorSize - j;
-	  R_prime[k_j + 1] = R[k_j];
-	  
-	  // case where the prediction is "taken"
-	  if (taken) R_prime[k_j + 1] += weightsTable[curPerceptron][j];
-	  else       R_prime[k_j + 1] -= weightsTable[curPerceptron][j];
-	  
-	  if (j == 0) { // special case for first iteration to update bias
-		if (taken) weightsTable[curPerceptron][0] += 1;
-		else       weightsTable[curPerceptron][0] -= 1;
-	  }
 
-	  else {
-		// weight is chosen mod path.size in the edge case of short history
-		k = path[j % path.size()] % perceptronCount; 
+	if (taken) weightsTable[curPerceptron][0] += 1;
+	else       weightsTable[curPerceptron][0] -= 1;
+	
+	for (int j = 1; j <= globalPredictorSize; j++) {
+	  // weight is chosen mod path.size in the edge case of short history
+	  k = path[j % path.size()] % perceptronCount; 
 	  
-		if (((thread_history >> j) & 1) == taken)
-		  weightsTable[k][j]    += 1;
-		else weightsTable[k][j] -= 1;
-	  }
+	  if (((thread_history >> j) & 1) == taken)
+		   weightsTable[k][j] += 1;
+	  else weightsTable[k][j] -= 1;
 	}
   }
 
@@ -187,8 +187,8 @@ NeuroPathBP::squash(ThreadID tid, void *bp_history)
   SG[tid] = history->globalHistory;
 
   // Restore SR to a non-speculative version computed end if
-  // using only non-speculative information (not shown)
-  SR = R;
+  // using only non-speculative information
+  // SR = R;
   
   // Delete this BPHistory now that we're done with it.
   delete history;
