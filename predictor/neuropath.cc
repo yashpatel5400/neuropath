@@ -44,7 +44,7 @@ NeuroPathBP::NeuroPathBP(const NeuroPathBPParams *params)
 
   // number of hashed perceptrons, i.e. each
   // one act as a local predictor corresponding to local history
-  perceptronCount = 7;
+  perceptronCount = 10;
 
   // Perceptron theta threshold parameter empirically determined in the
   // fast neural branch predictor paper to be 2.14 * history + 20.58
@@ -55,8 +55,8 @@ NeuroPathBP::NeuroPathBP(const NeuroPathBPParams *params)
 					  std::vector<unsigned>(globalPredictorSize + 1, 0));
   
   // figure out max and min weights values
-  max_weight = (1 << (globalHistoryBits-1)) - 1;
-  min_weight = -(max_weight+1);
+  max_weight = (1 << (globalHistoryBits - 1)) - 1;
+  min_weight = -(max_weight + 1);
 }
 
 void
@@ -74,8 +74,6 @@ NeuroPathBP::updatePath(Addr branch_addr)
   // only maintains the last H (globalPredictorSize) addresses in history
   if (path.size() > (globalPredictorSize + 1)) path.pop_back();
 }
-
-// saturating increment or decrement
 
 unsigned
 NeuroPathBP::saturatedUpdate (unsigned weight, bool inc) {
@@ -132,10 +130,9 @@ NeuroPathBP::uncondBranch(ThreadID tid, Addr pc, void * &bp_history)
   history->globalUsed = true;
   bp_history = static_cast<void *>(history);
 
-  updatePath(pc);
-  
-  G[tid] = ((G[tid] << 1) | 1);
-  G[tid] &= historyRegisterMask;
+  updatePath(pc);  
+  SG[tid] = ((SG[tid] << 1) | 1);
+  SG[tid] &= historyRegisterMask;
 }
 
 void
