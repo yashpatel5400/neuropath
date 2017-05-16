@@ -24,7 +24,7 @@ in the Gem5 CPU simulator environment for an X86 ISA.
 
 For COS 583: Great Moments in Computing at Princeton University
 
-Results available at: http://fast-caverns-95520.herokuapp.com/table.html
+Results available at: http://fast-caverns-95520.herokuapp.com/
 
 ## Progress Steps:
 (3) Consider other ISAs
