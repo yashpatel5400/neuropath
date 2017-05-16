@@ -9,7 +9,9 @@
 
 	<meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
     <meta name="viewport" content="width=device-width" />
-
+	
+	<link href='http://fonts.googleapis.com/css?family=Arvo' rel='stylesheet' type='text/css'>
+	<link href='http://fonts.googleapis.com/css?family=PT+Sans' rel='stylesheet' type='text/css'>
 
     <!-- Bootstrap core CSS     -->
     <link href="assets/css/bootstrap.min.css" rel="stylesheet" />
@@ -31,11 +33,8 @@
     <link href="assets/css/pe-icon-7-stroke.css" rel="stylesheet" />
   </head>
   <body>
-
 	<div class="wrapper">
-      <div class="sidebar" data-color="purple" data-image="assets/img/sidebar-5.jpg">
-
-		<!--   you can change the color of the sidebar using: data-color="blue | azure | green | orange | red | purple" -->
+	  <div class="sidebar" data-color="purple" data-image="assets/img/sidebar-5.jpg">
 		<div class="sidebar-wrapper">
           <div class="logo">
             <a href="#" class="simple-text">
@@ -65,21 +64,89 @@
           </ul>
     	</div>
       </div>
+	  
+	  <div class="main-panel">
+		<div class="content">
+		  <div class="col-md-12">
+			<div class="tab">
+			  <button class="tablinks" onclick="openCity(event, 'BranchPredictor')">
+				Branch Predictor
+			  </button>
+			  <button class="tablinks" onclick="openCity(event, 'LocalBP')" >
+				LocalBP
+			  </button>
 
-      <div class="main-panel">
-        <div class="content">
-          <div class="container-fluid">
-            <div class="row">
-              <div class="col-md-12">
-              </div>
+			  <button class="tablinks" onclick="openCity(event, 'TournamentBP')" >
+				TournamentBP
+			  </button>
 
-            </div>
-          </div>
-        </div>
-      </div>
-	</div>
+			  <button class="tablinks" onclick="openCity(event, 'BimodalBP')" >
+				BimodalBP
+			  </button>
+			  
+			  <button class="tablinks" onclick="openCity(event, 'LTAGE')" >
+				LTAGE
+			  </button>
 
+			  <button class="tablinks" onclick="openCity(event, 'StaticBP')" >
+				StaticBP
+			  </button>
+			  
+			  <button class="tablinks" onclick="openCity(event, 'NeuralBP')" >
+				NeuralBP
+			  </button>
 
+			  <button class="tablinks" onclick="openCity(event, 'NeuralPathBP')">				NeuralPathBP
+			  </button>
+			</div>
+
+			<div id="BranchPredictor" class="tabcontent">
+			  <h2 class="col-md-12"> Branch Predictor </h2><hr>
+			  <p>
+				Modern CPUs have grown significantly more complex than they used to be, as manufacturers like AMD and Intel now grow unable to achieve speedups simply by smashing more transistors on a single chip. This limitation is largely due to physical constraints, i.e. due to quantum issues that become prevalent at size regimes these chips are dealing with. As a result, such manufacturers have looked to more creative ways of achieving speedups, largely in the form of increasing parallelism. This has emerged in the forms of multi-core processor designs and also branch prediction.
+				<br><br>
+				Branch prediction has become an essential part of the CPU pipeline, particularlyl to increase ILP (instruction-level parallelism). Specifically, branch predictors are responsible for pre-fetching instructions for decoding/execution in conditional branch locations, i.e. points in the code where it is impossible to know which instruction to fetch next. In other words, the CPU guesses the outcome of the branch and fetches instructions accordingly, hoping to avoid the seeming possible of needing to wait for the conditional branch to finish executing to fetch/process further instructions. Modern branch predictors typically integrate global history and local history, which respectively correspond to applying the result of previous branch outcomes in the overall program and at particular values for the program counter (i.e. by line number in the code). However, with the uprising of neural nets, it was unavoidable that they would too be tested in this regime.
+				<br><br>
+				The main issue with neural net implementations is the latency, i.e. how long it would take for the prediction to occur relative to the time spent. Despite maybe a few percentage points extra, perceptron use was largely relegated as not likely to be adopted, seeing as modern methods already achieve accuracies of upwards of 90-95%. However, recent research investigations have revealed otherwise, citing that perceptrons may in fact be comparable in accuracy and latency to those methods that are currently most widespread. We explored several branch predictor designs across different executables and similarly between ISAs, i.e. ARM and X86, all through the gem5 simulator environment.
+			  </p>
+			</div>
+			
+			<div id="LocalBP" class="tabcontent">
+			  <h2 class="col-md-12"> LocalBP </h2><hr>
+			  <p> Test input </p>
+			</div>
+			
+			<div id="TournamentBP" class="tabcontent">
+			  <h2 class="col-md-12"> TournamentBP </h2><hr>
+			  <p> Test input </p>
+			</div>
+
+			<div id="BimodalBP" class="tabcontent">
+			  <h2 class="col-md-12"> BimodalBP </h2><hr>
+			  <p> Test input </p>
+			</div>
+
+			<div id="LTAGE" class="tabcontent">
+			  <h2 class="col-md-12"> LTAGE </h2><hr>
+			  <p> Test input </p>
+			</div>
+
+			<div id="StaticBP" class="tabcontent">
+			  <h2 class="col-md-12"> StaticBP </h2><hr>
+			  <p> Test input </p>
+			</div>
+
+			<div id="NeuralBP" class="tabcontent">
+			  <h2 class="col-md-12"> NeuralBP </h2><hr>
+			  <p> Test input </p>
+			</div>
+
+			<div id="NeuralPathBP" class="tabcontent">
+			  <h2 class="col-md-12"> NeuralPathBP </h2><hr>
+			  <p> Test input </p>
+			</div>		  
+		</div>
+	  </div>
   </body>
 
   <!--   Core JS Files   -->
@@ -104,4 +171,29 @@
   <!-- Light Bootstrap Table DEMO methods, don't include it in your project! -->
   <script src="assets/js/demo.js"></script>
 
+  <script>
+	function openCity(evt, cityName) {
+    // Declare all variables
+    var i, tabcontent, tablinks;
+
+    // Get all elements with class="tabcontent" and hide them
+    tabcontent = document.getElementsByClassName("tabcontent");
+    for (i = 0; i < tabcontent.length; i++) {
+					tabcontent[i].style.display = "none";
+					}
+
+					// Get all elements with class="tablinks" and remove the class "active"
+					tablinks = document.getElementsByClassName("tablinks");
+					for (i = 0; i < tablinks.length; i++) {
+									tablinks[i].className = tablinks[i].className.replace(" active", "");
+									}
+
+									// Show the current tab, and add an "active" class to the button that opened the tab
+									document.getElementById(cityName).style.display = "block";
+									evt.currentTarget.className += " active";
+									}
+									document.getElementById("BranchPredictor").style.display = "block";
+									evt.currentTarget.className += " active";
+  </script>
+  
 </html>

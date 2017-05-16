@@ -40,32 +40,25 @@ def analyze_executable(isa, executable):
     
     cond_incorrects    = {}
     indirect_incorrect = {}
-    for i, name in enumerate(s.BP_NAMES):
+    for i in [6]:
         os.system(command.format(isa, executable, i))
-        
+        name = s.BP_NAMES[i]
         dump = open(s.INPUT_FILE, "r").readlines()
-        # only the stats relevant to the branch predictor
-        pred_stats = [l for l in dump if "system.cpu.branchPred" in l]
 
-        cond_incorrects[name] = [l.strip() for l in pred_stats
-            if "condIncorrect" in l][0].split()[1]
-        indirect_incorrect[name] = [l.strip() for l in pred_stats
-            if "branchPredindirectMispredicted" in l][0].split()[1]
-        
+        attributes = {"conditional" : "condIncorrect",
+                      "indirect"    : "branchPredindirectMispredicted",
+                      "latency"     : "host_seconds"}
+        attribute_values = [[l.strip() for l in dump
+            if attribute in l][0].split()[1] for attribute in attributes.values()]
+
         print("===============================================")
         print("Completed {}".format(name))
         print("===============================================")
-        with open("m5cache/conditional_{}_{}.txt".format(
+        for attribute, value in zip(attributes, attribute_values):
+            with open("m5cached/{}_{}.txt".format(
                 name, s.EXEC_NAMES[executable]), "w") as f:
-            f.write("{} : {}\n".format(name, cond_incorrects[name]))
-
-        with open("m5cache/indirect_{}_{}.txt".format(
-                name, s.EXEC_NAMES[executable]), "w") as f:
-            f.write("{} : {}\n".format(name, indirect_incorrect[name]))
-
-    visualize_bps(cond_incorrects, indirect_incorrect,
-                  "{}.html".format(s.EXEC_NAMES[executable]))
+                f.write("{} : {}\n".format(attribute, value))
                 
 if __name__ == "__main__":
-    for executable in [5]:
+    for executable in [6]:
         analyze_executable("X86", executable)
