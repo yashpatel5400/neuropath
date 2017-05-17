@@ -26,9 +26,21 @@ For COS 583: Great Moments in Computing at Princeton University
 
 Results available at: http://fast-caverns-95520.herokuapp.com/
 
-## Progress Steps:
-(3) Consider other ISAs
+## Conclusions
+### Conditional
+Conditional represents the total number of conditional branches predicted incorrectly by the predictor. The following were the main takeaways from the conditional graphs:
+* LTAGE branch predictor almost always annihilated the rest of the predictors in sheer performance
 
-(4) Complete analyses/publish to site
+### Indirect
+Indirect represents the . The following were the main takeaways from the indirect graphs:
+* 
 
-(5) Parallelize codebase
+### Latency
+Latency is simply how long the branch predictor took to run the program. Having held the environment relatively constant (i.e. same processes running in the computer background), this time rougly corresponds to how long the BP takes to make its predictions. The following were the main takeaways from the latency graphs:
+* The neural branch predictor and fast-path predictor often had at least twice the latency of the others, probably partially due to lack of the parallel implementation (though similar effects may appear in other BPs as well)
+* 
+
+## Future Steps:
+(1) Consider other ISAs
+
+(2) Parallelize codebase
