@@ -37,8 +37,11 @@ Conditional represents the total number of conditional branches predicted incorr
 * Very similar outputs for the integer matrix multiplication result vs. real matrices
 
 ### Indirect
-Indirect represents the . The following were the main takeaways from the indirect graphs:
-* 
+Indirect represents the number of mispredicted indirect branches, which are different from typical branches in that, rather than specifying the address of the next instruction to execute, as in a direct branch, the argument specifies where the address is located, i.e. the r1 register. The following were the main takeaways from the indirect graphs:
+* Local almost always lowest, likely because the value of a register is in scope for only a short while, meaning it is a local property to regions of the program
+* Usually path had less than the regular neural predictor, since the path can partially capture what values are in the register and thus use that information in making its predictions
+* The neural branch predictors typically fell in the middle range, making their performance quite average relative to all the other predictors
+* Path typically follows trends of LTAGE, presumably because LTAGE is essentially in line with the "path prediction" mentality, in that it considers different lengths of history for each of the local branches
 
 ### Latency
 Latency is simply how long the branch predictor took to run the program. Having held the environment relatively constant (i.e. same processes running in the computer background), this time rougly corresponds to how long the BP takes to make its predictions. The following were the main takeaways from the latency graphs:
