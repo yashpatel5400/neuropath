@@ -30,6 +30,11 @@ Results available at: http://fast-caverns-95520.herokuapp.com/
 ### Conditional
 Conditional represents the total number of conditional branches predicted incorrectly by the predictor. The following were the main takeaways from the conditional graphs:
 * LTAGE branch predictor almost always annihilated the rest of the predictors in sheer performance
+* NeuroBP (standard neural predictor) is quite heavily correlated with the LocalBP predictor. This makes sense, since the two base weight predictions based on past outcomes at a given branch
+* NeuroPathBP performance seems to generally be quite mediocre (worse than NeuroBP) - focus is on large speedup (not implemented due to needing parallelism)
+  * Especially programs where the path may not be significant seems to throw off the NeuroPathBP predictor (i.e. sorting scripts)
+  * Performs relatively fine on the matrix multiplications, where presumably the traces through successive rows being similar is captured
+* Very similar outputs for the integer matrix multiplication result vs. real matrices
 
 ### Indirect
 Indirect represents the . The following were the main takeaways from the indirect graphs:
@@ -37,8 +42,9 @@ Indirect represents the . The following were the main takeaways from the indirec
 
 ### Latency
 Latency is simply how long the branch predictor took to run the program. Having held the environment relatively constant (i.e. same processes running in the computer background), this time rougly corresponds to how long the BP takes to make its predictions. The following were the main takeaways from the latency graphs:
-* The neural branch predictor and fast-path predictor often had at least twice the latency of the others, probably partially due to lack of the parallel implementation (though similar effects may appear in other BPs as well)
-* 
+* The neural branch predictor and fast-path predictor often had at least significantly more latency of the others
+  * Fast-path predictor often had more latency than the standard, even though its primary advantage was supposedly speedly, likely due to lack of the parallel implementation (though similar effects may appear in other BPs as well)
+* All of the rest were relatively comparable, meaning that LTAGE is still quite handily the superior branch predictor, given its performance and latency
 
 ## Future Steps:
 (1) Consider other ISAs
